@@ -1,0 +1,22 @@
+[package]
+name = "arraylib" # TODO: I'm not sure about the name
+version = "0.1.0"
+authors = ["Waffle <waffle.lapkin@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+# none
+
+[features]
+alloc = []
+
+# Currently used nightly features:
+# - trusted_len (for implementing `TrustedLen` on array's `IterMove`)
+# - exact_size_is_empty (for more optimized implementation of `ExactSizeIterator::is_empty` for `ArrayChunks`)
+nightly = []
+
+array-impls-33-128 = []
+array-impls-129-256 = []
+
