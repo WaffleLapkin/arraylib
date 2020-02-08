@@ -169,6 +169,6 @@ mod ext {
 }
 
 // Run tests from readme
-#[doc(include = "../README.md")]
+#[cfg_attr(feature = "nightly", doc(include = "../README.md"))]
 #[cfg(doctest)]
 pub struct ReadmeDocTests;
