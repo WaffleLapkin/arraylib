@@ -1,8 +1,10 @@
 //! Internal api for initializing big arrays.
 //!
-//! For public api see [`Array`]'s [`try_from_fn`], [`from_fn`] and [`from_iter`].
+//! For public api see [`Array`]'s [`try_unfold`], [`unfold`], [`try_from_fn`], [`from_fn`] and [`from_iter`].
 //!
 //! [`Array`]: crate::Array
+//! [`try_unfold`]: crate::Array::try_unfold
+//! [`unfold`]: crate::Array::unfold
 //! [`try_from_fn`]: crate::Array::try_from_fn
 //! [`from_fn`]: crate::Array::from_fn
 //! [`from_iter`]: crate::Array::from_iter
@@ -21,10 +23,7 @@ where
     Arr::Item: Sized,
     F: FnMut(usize) -> Arr::Item,
 {
-    match try_array_init_fn(|i| Ok::<_, Infallible>(init(i))) {
-        Ok(arr) => arr,
-        Err(inf) => match inf {},
-    }
+    try_array_init_fn(|i| Ok::<_, Infallible>(init(i))).unwrap_or_else(|inf| match inf {})
 }
 
 #[inline]
@@ -34,24 +33,49 @@ where
     Arr::Item: Sized,
     I: Iterator<Item = Arr::Item>,
 {
-    try_array_init_fn(|_| iter.next().ok_or(())).ok()
+    try_unfold_array((), |_| iter.next().ok_or(())).ok()
 }
 
 #[inline]
-pub(crate) fn try_array_init_fn<Arr, Err, F>(mut init: F) -> Result<Arr, Err>
+pub(crate) fn try_array_init_fn<Arr, Err, F>(mut f: F) -> Result<Arr, Err>
 where
     Arr: Array,
     Arr::Item: Sized,
     F: FnMut(usize) -> Result<Arr::Item, Err>,
 {
+    try_unfold_array(0usize, |state| {
+        let item = f(*state);
+        *state += 1;
+        item
+    })
+}
+
+#[inline]
+pub(crate) fn unfold_array<Arr, St, F>(init: St, mut f: F) -> Arr
+where
+    Arr: Array,
+    F: FnMut(&mut St) -> Arr::Item,
+{
+    try_unfold_array(init, |state| Ok::<_, Infallible>(f(state))).unwrap_or_else(|inf| match inf {})
+}
+
+#[inline]
+pub(crate) fn try_unfold_array<Arr, St, F, E>(init: St, mut f: F) -> Result<Arr, E>
+where
+    Arr: Array,
+    // It's better to use `Try` here, instead of `Result` but it's unstable
+    F: FnMut(&mut St) -> Result<Arr::Item, E>,
+{
     if !mem::needs_drop::<Arr::Item>() {
         let mut array = Arr::uninit();
 
         unsafe {
+            let mut state = init;
             for i in 0..Arr::SIZE {
-                // If `init` panics nothing really happen: panic just go up
+                // If `init` panics/fails nothing really happen: panic/fail just go up
                 // (Item doesn't need drop, so there are no leaks and everything is ok')
-                *array.index_mut(i) = MaybeUninit::new(init(i)?);
+                let elem = f(&mut state)?;
+                *array.index_mut(i) = MaybeUninit::new(elem);
             }
 
             // # Safety
@@ -108,12 +132,13 @@ where
                 initialized_count: 0,
             };
 
+            let mut state = init;
             for i in 0..Arr::SIZE {
                 // Invariant: `i` elements have already been initialized
                 panic_guard.initialized_count = i;
                 // If this panics or fails, `panic_guard` is dropped, thus
                 // dropping the elements in `base_ptr[.. i]`
-                let value = init(i)?;
+                let value = f(&mut state)?;
                 *array.index_mut(i) = MaybeUninit::new(value);
             }
 

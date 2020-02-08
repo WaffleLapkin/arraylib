@@ -69,6 +69,47 @@ pub unsafe trait Array: Sized {
     /// ```
     /// use arraylib::Array;
     ///
+    /// let f = |it: &mut u32| {
+    ///     let res = Ok(*it);
+    ///     *it = it.checked_sub(10).ok_or(())?;
+    ///     res
+    /// };
+    ///
+    /// let arr = <[_; 3]>::try_unfold(30, f);
+    /// assert_eq!(arr, Ok([30, 20, 10]));
+    ///
+    /// let arr = <[_; 10]>::try_unfold(40, f);
+    /// assert_eq!(arr, Err(()));
+    /// ```
+    fn try_unfold<St, F, E>(init: St, f: F) -> Result<Self, E>
+    where
+        // It's better to use `Try` here, instead of `Result` but it's unstable
+        F: FnMut(&mut St) -> Result<Self::Item, E>;
+
+    /// Create new array, filled with elements returned by `f`
+    ///
+    /// ## Example
+    /// ```
+    /// use arraylib::Array;
+    ///
+    /// let arr = <[_; 11]>::unfold(1, |it| {
+    ///     let res = *it;
+    ///     *it *= -2;
+    ///     res
+    /// });
+    /// assert_eq!(arr, [1, -2, 4, -8, 16, -32, 64, -128, 256, -512, 1024]);
+    /// ```
+    fn unfold<St, F>(init: St, f: F) -> Self
+    where
+        F: FnMut(&mut St) -> Self::Item;
+
+    /// Create new array, filled with elements returned by `f`. If `f` return
+    /// `Err` then this method also return `Err`.
+    ///
+    /// ## Example
+    /// ```
+    /// use arraylib::Array;
+    ///
     /// let f = |it| 250u8.checked_add(it as u8).ok_or(());
     ///
     /// let arr = <[_; 3]>::try_from_fn(f);
@@ -299,6 +340,22 @@ unsafe impl<T> Array for [T; 0] {
     }
 
     #[inline]
+    fn try_unfold<St, F, E>(_init: St, _f: F) -> Result<Self, E>
+    where
+        F: FnMut(&mut St) -> Result<Self::Item, E>,
+    {
+        Ok([])
+    }
+
+    #[inline]
+    fn unfold<St, F>(_init: St, _f: F) -> Self
+    where
+        F: FnMut(&mut St) -> Self::Item,
+    {
+        []
+    }
+
+    #[inline]
     fn try_from_fn<F, E>(_f: F) -> Result<Self, E>
     where
         F: FnMut(usize) -> Result<Self::Item, E>,
@@ -350,6 +407,40 @@ macro_rules! array_impl {
 
             #[inline]
             #[allow(unused_mut)]
+            fn try_unfold<St, F, E>(mut init: St, mut f: F) -> Result<Self, E>
+            where
+                F: FnMut(&mut St) -> Result<Self::Item, E>
+            {
+                Ok(
+                    // this expands to
+                    // - `[f(&mut init)?, ..., f(&mut init)?]`, for arrays of sizes 1..=32
+                    // - `crate::init::unfold_array`, otherwise
+                    block_specialisation!(
+                        $e,
+                        { $crate::util::init::try_unfold_array(init, f)? },
+                        { f(&mut init)? }
+                    )
+                )
+            }
+
+            #[inline]
+            #[allow(unused_mut)]
+            fn unfold<St, F>(mut init: St, mut f: F) -> Self
+            where
+                F: FnMut(&mut St) -> Self::Item
+            {
+                // this expands to
+                // - `[f(&mut init), ..., f(&mut init)]`, for arrays of sizes 1..=32
+                // - `crate::init::unfold_array`, otherwise
+                block_specialisation!(
+                    $e,
+                    { $crate::util::init::unfold_array(init, f) },
+                    { f(&mut init) }
+                )
+            }
+
+            #[inline]
+            #[allow(unused_mut)]
             fn try_from_fn<F, E>(mut f: F) -> Result<Self, E>
             where
                 F: FnMut(usize) -> Result<Self::Item, E>
@@ -357,7 +448,7 @@ macro_rules! array_impl {
                 // this expands to
                 // - `[f(0)?, f(1)?, f(2)?, ..., f($e - 1)?]`, for arrays of sizes 1..=32
                 // - `crate::init::array_init_fn`, otherwise
-                Ok(array_init_by_try_f!($e, f))
+                Ok(try_from_fn_specialisation!($e, f))
             }
 
 
@@ -370,7 +461,7 @@ macro_rules! array_impl {
                 // this expands to
                 // - `[f(0), f(1), f(2), ..., f($e - 1)]`, for arrays of sizes 1..=32
                 // - `crate::init::array_init_fn`, otherwise
-                array_init_by_f!($e, f)
+                from_fn_specialisation!($e, f)
             }
 
             #[inline]
@@ -380,11 +471,16 @@ macro_rules! array_impl {
             {
                 #[allow(unused_mut)]
                 let mut iter = iter.into_iter();
+
                 Some(
                     // this expands to
-                    // - `[iter.next()?, iter.next()?, ...]`, for arrays of sizes 1..=32
-                    // - `crate::init::array_init_iter`, otherwise
-                    array_init_by_next!($e, iter)
+                    // - `[iter.next()?, ..., iter.next()?]`, for arrays of sizes 1..=32
+                    // - `crate::init::unfold_array`, otherwise
+                    block_specialisation!(
+                        $e,
+                        { $crate::util::init::array_init_iter(iter)? },
+                        { iter.next()? }
+                    )
                 )
             }
 

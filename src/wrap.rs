@@ -470,6 +470,26 @@ where
     }
 
     #[inline]
+    fn try_unfold<St, F, E>(init: St, f: F) -> Result<Self, E>
+    where
+        F: FnMut(&mut St) -> Result<Self::Item, E>,
+    {
+        Ok(Self {
+            array: A::try_unfold(init, f)?,
+        })
+    }
+
+    #[inline]
+    fn unfold<St, F>(init: St, f: F) -> Self
+    where
+        F: FnMut(&mut St) -> Self::Item,
+    {
+        Self {
+            array: A::unfold(init, f),
+        }
+    }
+
+    #[inline]
     fn try_from_fn<F, E>(f: F) -> Result<Self, E>
     where
         F: FnMut(usize) -> Result<Self::Item, E>,
