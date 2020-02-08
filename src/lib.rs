@@ -1,4 +1,4 @@
-//! This crate provides API for
+//! This crate provides API for working with arrays, e.g.:
 //! 1) Abstraction over arrays (you can use [`Array` trait][arr] as bound on generics)
 //! 2) Doing operations on arrays that produce arrays (see [`ArrayExt`] trait)
 //! 3) By-value iterating on array (see [`IterMove`])
@@ -6,6 +6,25 @@
 //! [arr]: crate::Array
 //! [`ArrayExt`]: crate::ArrayExt
 //! [`IterMove`]: crate::iter::IterMove
+//!
+//! ## Example
+//!
+//! ```
+//! use arraylib::{Array, ArrayMap, ArrayExt};
+//! // Array creation
+//! let arr = <[_; 11]>::unfold(1, |it| {
+//!     let res = *it;
+//!     *it *= -2;
+//!     res
+//! });
+//!
+//! // Mapping
+//! let arr = arr.map(|it| it * 2);
+//! assert_eq!(arr, [2, -4, 8, -16, 32, -64, 128, -256, 512, -1024, 2048]);
+//!
+//! // By-value iterator
+//! arr.iter_move().for_each(|i: i32| {})
+//! ```
 //!
 //! ## Sizes Limitations
 //!
@@ -71,6 +90,8 @@
 #![cfg_attr(not(test), no_std)]
 // Some sweaty nightly features
 #![cfg_attr(feature = "nightly", feature(trusted_len, exact_size_is_empty))]
+// For running tests from readme
+#![cfg_attr(all(doctest, feature = "nightly"), feature(external_doc))]
 // I hate missing docs
 #![deny(missing_docs)]
 // And I like inline
@@ -138,3 +159,8 @@ mod ext {
     /// Slice ext
     pub(super) mod slice_ext;
 }
+
+// Run tests from readme
+#[doc(include = "../README.md")]
+#[cfg(doctest)]
+pub struct ReadmeDocTests;
