@@ -3,6 +3,12 @@ use crate::{iter::IteratorExt, Array, ArrayExt};
 /// Represent array which elements can be mapped (actually any array)
 pub trait ArrayMap<U>: Array {
     /// Type of mapped array. So if `Self = [T; N]` then `Map = [U; N]`
+    /// i.e.
+    /// ```
+    /// # use arraylib::ArrayMap; fn dummy<T, U>() where
+    /// [T; 4]: ArrayMap<U, Map = [U; 4]>
+    /// # {}
+    /// ```
     type Map: Array<Item = U>;
 
     /// Maps elements of the array

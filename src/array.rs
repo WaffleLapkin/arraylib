@@ -19,11 +19,20 @@ use crate::util::transmute::extremely_unsafe_transmute;
 /// It is **highly not recommended** to implement this trait on your type unless you **really** know
 /// what you are doing.
 pub unsafe trait Array: Sized {
-    /// Type of the Items in the array. (e.g. `[T; 4]` implement `Array<Item = T>`)
+    /// Type of the Items in the array. i.e.
+    /// ```
+    /// # use arraylib::Array; fn dummy<T>() where
+    /// [T; 4]: Array<Item = T>
+    /// # {}
+    /// ```
     type Item;
 
-    /// Same array but item is wrapped into [`MaybeUninit<_>`](core::mem::MaybeUninit).
-    /// (e.g. `[T; 4]::Maybe` would be `[MaybeUninit<T>; 5]`)
+    /// Same array but item is wrapped with [`MaybeUninit<_>`](core::mem::MaybeUninit).
+    /// ```
+    /// # use arraylib::Array; fn dummy<T>() where
+    /// [T; 4]: Array<Item = T, Maybe = [core::mem::MaybeUninit<T>; 4]>
+    /// # {}
+    /// ```
     type Maybe: Array<Item = MaybeUninit<Self::Item>>;
 
     /// Size of the array.

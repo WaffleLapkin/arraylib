@@ -8,9 +8,7 @@ use crate::{Array, ArrayExt, SizeError};
 pub trait Slice {
     /// Item of the slice, i.e.
     /// ```
-    /// # use arraylib::Slice;
-    /// # fn dummy<T>()
-    /// # where
+    /// # use arraylib::Slice; fn dummy<T>() where
     /// [T]: Slice<Item = T>
     /// # {}
     /// ```
