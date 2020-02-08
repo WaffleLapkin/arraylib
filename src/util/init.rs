@@ -158,6 +158,9 @@ where
 
 #[cfg(test)]
 mod tests {
+    // I just don't want to think about ordering
+    #![allow(clippy::mutex_atomic)]
+
     use core::convert::TryFrom;
     use std::sync::Mutex;
 

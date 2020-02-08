@@ -304,7 +304,7 @@ mod tests {
         assert!(iter.clone().eq(vec![1, 2, 3]));
 
         for _ in iter.by_ref() {}
-        assert!(iter.clone().eq(iter::empty()));
+        assert!(iter.eq(iter::empty()));
     }
 
     #[test]
