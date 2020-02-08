@@ -1,4 +1,5 @@
-/// Calls a `$callback` with sizes of the arrays for which traits must be implemented
+/// Calls a `$callback` with sizes of the arrays for which traits must be
+/// implemented
 macro_rules! array_impls {
     ($callback:ident) => {
         // impls for arrays of sizes [1..32] (size = 0 is always implemented by hands)

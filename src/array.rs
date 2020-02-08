@@ -6,18 +6,20 @@ use crate::util::transmute::extremely_unsafe_transmute;
 ///
 /// ## Sizes
 ///
-/// See [Sizes Limitations](./index.html#sizes-limitations) paragraph in crate docs.
+/// See [Sizes Limitations](./index.html#sizes-limitations) paragraph in crate
+/// docs.
 ///
 /// ## Safety
 ///
 /// By implementing this trait for type `T` you guarantee that
 /// 1. `T` has the same **ABI** as `[T::Item; T::Size]`
-/// 2. `T::Maybe` is an array of the same type (`[MeybeUninit<T::Item>; T::Size]`)
+/// 2. `T::Maybe` is an array of the same type
+///    (`[MeybeUninit<T::Item>; T::Size]`)
 ///
 /// Violating these rules will cause **UB**.
 ///
-/// It is **highly not recommended** to implement this trait on your type unless you **really** know
-/// what you are doing.
+/// It is **highly not recommended** to implement this trait on your type unless
+/// you **really** know what you are doing.
 pub unsafe trait Array: Sized {
     /// Type of the Items in the array. i.e.
     /// ```
@@ -27,7 +29,8 @@ pub unsafe trait Array: Sized {
     /// ```
     type Item;
 
-    /// Same array but item is wrapped with [`MaybeUninit<_>`](core::mem::MaybeUninit).
+    /// Same array but item is wrapped with
+    /// [`MaybeUninit<_>`](core::mem::MaybeUninit).
     /// ```
     /// # use arraylib::Array; fn dummy<T>() where
     /// [T; 4]: Array<Item = T, Maybe = [core::mem::MaybeUninit<T>; 4]>
@@ -38,6 +41,7 @@ pub unsafe trait Array: Sized {
     /// Size of the array.
     ///
     /// ## Example
+    ///
     /// ```
     /// use arraylib::Array;
     ///
@@ -170,13 +174,13 @@ pub unsafe trait Array: Sized {
     where
         I: IntoIterator<Item = Self::Item>;
 
-    /// Converts self into `[MaybeUninit<Self::Item>; Self::Size]`. This function is used internally
-    /// in this crate for some unsafe code.
+    /// Converts self into `[MaybeUninit<Self::Item>; Self::Size]`. This
+    /// function is used internally in this crate for some unsafe code.
     ///
     /// ## Example
     /// ```
-    /// use std::mem::MaybeUninit;
     /// use arraylib::Array;
+    /// use std::mem::MaybeUninit;
     ///
     /// let _: [MaybeUninit<bool>; 3] = [true, false, false].into_uninit();
     /// ```
@@ -202,8 +206,8 @@ pub unsafe trait Array: Sized {
     ///
     /// ## Example
     /// ```
-    /// use std::mem::MaybeUninit;
     /// use arraylib::Array;
+    /// use std::mem::MaybeUninit;
     ///
     /// let _: [MaybeUninit<i32>; 3] = <[i32; 3]>::uninit();
     /// ```
@@ -227,9 +231,10 @@ pub unsafe trait Array: Sized {
     ///
     /// # Safety
     ///
-    /// It is up to the caller to guarantee that all elements of the array are really in an
-    /// initialized state. Calling this when the content is not yet fully initialized causes
-    /// immediate undefined behavior. The [`MaybeUninit's` type-level documentation][inv] contains
+    /// It is up to the caller to guarantee that all elements of the array are
+    /// really in an initialized state. Calling this when the content is not
+    /// yet fully initialized causes immediate undefined behavior. The
+    /// [`MaybeUninit's` type-level documentation][inv] contains
     /// more information about this initialization invariant.
     ///
     /// See also [`MaybeUninit::assume_init`] documentation.
@@ -243,8 +248,8 @@ pub unsafe trait Array: Sized {
     /// Correct usage of this method:
     ///
     /// ```
-    /// use std::mem::MaybeUninit;
     /// use arraylib::Array;
+    /// use std::mem::MaybeUninit;
     ///
     /// let mut arr: [MaybeUninit<bool>; 4] = <[bool; 4]>::uninit();
     /// for x in arr.iter_mut() {
@@ -258,8 +263,8 @@ pub unsafe trait Array: Sized {
     /// *Incorrect* usage of this method:
     ///
     /// ```no_run
-    /// use std::mem::MaybeUninit;
     /// use arraylib::Array;
+    /// use std::mem::MaybeUninit;
     ///
     /// let mut arr: [MaybeUninit<bool>; 4] = <[bool; 4]>::uninit();
     /// for i in 0..3 {
@@ -289,9 +294,9 @@ pub unsafe trait Array: Sized {
     #[inline]
     #[cfg(feature = "alloc")]
     fn into_boxed_slice(self) -> alloc::boxed::Box<[Self::Item]> {
-        // This `unimplemented!` is done to allow other crates to not implement this fn and not
-        // worrying that the will stop working when end-user would require to turn off or on alloc
-        // feature of this crate.
+        // This `unimplemented!` is done to allow other crates to not implement this fn
+        // and not worrying that the will stop working when end-user would
+        // require to turn off or on alloc feature of this crate.
         //
         // ## Example of the problem:
         //
@@ -313,8 +318,8 @@ pub unsafe trait Array: Sized {
         //
         // 2:
         // - lib#1 implements Array for own type with `into_boxed_slice`
-        // - bin can be compiled without `alloc` because `lib#1` require `alloc`
-        //   feature of arraylib
+        // - bin can be compiled without `alloc` because `lib#1` require `alloc` feature
+        //   of arraylib
         //
         // There are 3 ways to solve this problems:
         // 1:

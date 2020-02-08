@@ -42,7 +42,9 @@ pub trait IteratorExt: Iterator {
     /// let _chunks = vec.into_iter().array_chunks::<[_; 0]>();
     /// ```
     ///
-    /// See also [`slice::chunks`](../../core/primitive.slice.html#method.chunks)
+    /// See also [`slice::chunks`][chunks]
+    ///
+    /// [chunks]: ../../core/primitive.slice.html#method.chunks
     #[inline]
     fn array_chunks<A>(self) -> ArrayChunks<Self, A>
     where
@@ -68,9 +70,7 @@ pub trait IteratorExt: Iterator {
     /// use arraylib::iter::IteratorExt;
     ///
     /// let a = [1, 2, 3];
-    /// let doubled: [_; 3] = a.iter()
-    ///                          .map(|&x| x * 2)
-    ///                          .collect_array();
+    /// let doubled: [_; 3] = a.iter().map(|&x| x * 2).collect_array();
     ///
     /// assert_eq!([2, 4, 6], doubled);
     /// ```
@@ -82,9 +82,7 @@ pub trait IteratorExt: Iterator {
     /// ```should_panic
     /// use arraylib::iter::IteratorExt;
     ///
-    /// [1, 2, 3]
-    ///     .iter()
-    ///     .collect_array::<[_; 16]>();
+    /// [1, 2, 3].iter().collect_array::<[_; 16]>();
     /// ```
     #[inline]
     fn collect_array<A>(self) -> A

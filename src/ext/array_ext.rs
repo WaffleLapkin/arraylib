@@ -38,8 +38,8 @@ pub trait ArrayExt: Array {
         unsafe {
             // Because of lack of const generics we need to assert this in runtime :(
             //
-            // It's also possible to add trait like `ArrayConcat<A> { type Output }` but this
-            // leads to A LOT of impls and SLOW compile times.
+            // It's also possible to add trait like `ArrayConcat<A> { type Output }` but
+            // this leads to A LOT of impls and SLOW compile times.
             assert_eq!(Self::SIZE + A::SIZE, R::SIZE);
 
             #[repr(C, packed)]
@@ -48,12 +48,12 @@ pub trait ArrayExt: Array {
             // ## Safety
             //
             // We know that all `Self`, `A` and `R` are arrays.
-            // Also we know that `Self::SIZE + A::SIZE == R::SIZE`, that means that we can concat
-            // `Self` with `A` and we'll obtain `R`.
+            // Also we know that `Self::SIZE + A::SIZE == R::SIZE`, that means that we can
+            // concat `Self` with `A` and we'll obtain `R`.
             //
             // Because of fact that all types are arrays (and fact that `Both` is
-            // `#[repr(C, packed)]`), we know that `Both<Self, A>` is equal to `R`, so we can safely
-            // transmute one into another.
+            // `#[repr(C, packed)]`), we know that `Both<Self, A>` is equal to `R`, so we
+            // can safely transmute one into another.
             let both = Both(self, other);
             extremely_unsafe_transmute::<Both<Self, A>, R>(both)
         }
@@ -90,25 +90,27 @@ pub trait ArrayExt: Array {
             // ## Safety
             //
             // We know that all `Self`, `A` and `B` are arrays.
-            // Also we know that `Self::SIZE, A::SIZE + B::SIZE`, that means that we can split
-            // `Self` into `A` and `B`.
+            // Also we know that `Self::SIZE, A::SIZE + B::SIZE`, that means that we can
+            // split `Self` into `A` and `B`.
             //
             // Because of fact that all types are arrays (and fact that `Both` is
-            // `#[repr(C, packed)]`), we know that `Both<Self, A>` is equal to `R`, so we can safely
-            // transmute one into another.
+            // `#[repr(C, packed)]`), we know that `Both<Self, A>` is equal to `R`, so we
+            // can safely transmute one into another.
             let Both(a, b): Both<A, B> = extremely_unsafe_transmute::<Self, Both<A, B>>(self);
             (a, b)
         }
     }
 
-    /// Converts `self` into an array. This function will return `Some(_)` if sizes of `Self` and
-    /// `A` are the same and `None` otherwise.
+    /// Converts `self` into an array. This function will return `Some(_)` if
+    /// sizes of `Self` and `A` are the same and `None` otherwise.
     ///
     /// ## Example
     /// ```
     /// use arraylib::{Array, ArrayExt};
     ///
-    /// fn function_optimized_for_8(_: [i32; 8]) { /* ... */ }
+    /// fn function_optimized_for_8(_: [i32; 8]) {
+    ///     /* ... */
+    /// }
     ///
     /// fn general<A>(array: A)
     /// where
@@ -213,8 +215,8 @@ pub trait ArrayExt: Array {
 
     /// Create array from slice. Return `Err(())` if `slice.len != Self::SIZE`.
     ///
-    /// Same as [`from_slice`](crate::ArrayExt::from_slice), but doesn't require items to be `Copy`,
-    /// instead only require elements to be `Clone`
+    /// Same as [`from_slice`](crate::ArrayExt::from_slice), but doesn't require
+    /// items to be `Copy`, instead only require elements to be `Clone`
     ///
     /// ## Examples
     ///
@@ -223,7 +225,10 @@ pub trait ArrayExt: Array {
     ///
     /// let slice = &[String::from("hi"), 123.to_string(), String::new()];
     /// let arr = <[String; 3]>::clone_from_slice(slice);
-    /// assert_eq!(arr, Ok([String::from("hi"), 123.to_string(), String::new()]));
+    /// assert_eq!(
+    ///     arr,
+    ///     Ok([String::from("hi"), 123.to_string(), String::new()])
+    /// );
     /// ```
     #[inline]
     fn clone_from_slice(slice: &[Self::Item]) -> Result<Self, SizeError>

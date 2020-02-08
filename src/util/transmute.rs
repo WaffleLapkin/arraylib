@@ -1,7 +1,7 @@
 use core::{mem, ptr};
 
-/// **Extremely unsafe** (even more unsafe that original!) version of [`mem::transmute`]
-/// that doesn't even check sizes of `T` and `U`.
+/// **Extremely unsafe** (even more unsafe that original!) version of
+/// [`mem::transmute`] that doesn't even check sizes of `T` and `U`.
 ///
 /// [`mem::transmute`]: core::mem::transmute
 pub(crate) unsafe fn extremely_unsafe_transmute<T, U>(e: T) -> U {

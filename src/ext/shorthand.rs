@@ -8,11 +8,11 @@ pub trait ArrayShorthand: Array {
     ///
     /// ## Example
     /// ```
-    /// use arraylib::{ArrayShorthand, Array};
+    /// use arraylib::{Array, ArrayShorthand};
     ///
     /// fn slice<A>(arr: &A) -> (&A::Item, &[A::Item])
     /// where
-    ///     A: Array
+    ///     A: Array,
     /// {
     ///     (arr.index(0), arr.index(1..))
     /// }
@@ -29,15 +29,16 @@ pub trait ArrayShorthand: Array {
         &self.as_slice()[idx]
     }
 
-    /// Returns a unique reference to the value corresponding to the supplied index.
+    /// Returns a unique reference to the value corresponding to the supplied
+    /// index.
     ///
     /// ## Example
     /// ```
-    /// use arraylib::{ArrayShorthand, Array};
+    /// use arraylib::{Array, ArrayShorthand};
     ///
     /// fn slice<A>(arr: &mut A) -> &mut [A::Item]
     /// where
-    ///     A: Array
+    ///     A: Array,
     /// {
     ///     arr.index_mut(1..)
     /// }

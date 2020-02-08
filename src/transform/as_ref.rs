@@ -1,6 +1,7 @@
 use crate::{iter::IteratorExt, Array};
 
-/// Trait for conversation between `&[T; N]` and `[&T; N]` (or `&mut [T; N]` and `[&mut T; N]`)
+/// Trait for conversation between `&[T; N]` and `[&T; N]` (or `&mut [T; N]` and
+/// `[&mut T; N]`)
 pub trait ArrayAsRef<'a>: Array
 where
     <Self as Array>::Item: 'a,
@@ -53,7 +54,8 @@ where
     /// See also: [`as_mut_array`](crate::ArrayAsRef::as_mut_array)
     fn as_ref_array(&'a self) -> Self::AsRef;
 
-    /// Convert `&mut self` to `[&mut T; N]` (where `T = Self::Item, N = Self::Size`)
+    /// Convert `&mut self` to `[&mut T; N]` (where `T = Self::Item, N =
+    /// Self::Size`)
     ///
     /// ## Examples
     /// ```
@@ -73,9 +75,7 @@ where
     ///     for<'a> A: ArrayAsRef<'a>,
     ///     A::Item: PartialEq,
     /// {
-    ///     let mut x = a.as_mut_array()
-    ///         .iter_move()
-    ///         .find(|it| it == &find);
+    ///     let mut x = a.as_mut_array().iter_move().find(|it| it == &find);
     ///     match x {
     ///         Some(ref mut inner) => core::mem::replace(inner, replace),
     ///         None => replace,
@@ -96,9 +96,8 @@ where
 }
 
 impl<'a, T: 'a> ArrayAsRef<'a> for [T; 0] {
-    type AsRef = [&'a T; 0];
-
     type AsMut = [&'a mut T; 0];
+    type AsRef = [&'a T; 0];
 
     #[inline]
     fn as_ref_array(&'a self) -> Self::AsRef {
@@ -114,9 +113,8 @@ impl<'a, T: 'a> ArrayAsRef<'a> for [T; 0] {
 macro_rules! as_ref_impl {
     ($e:tt) => {
         impl<'a, T: 'a> ArrayAsRef<'a> for [T; $e] {
-            type AsRef = [&'a T; $e];
-
             type AsMut = [&'a mut T; $e];
+            type AsRef = [&'a T; $e];
 
             #[inline]
             fn as_ref_array(&'a self) -> Self::AsRef {

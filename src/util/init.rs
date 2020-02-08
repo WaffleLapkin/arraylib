@@ -1,6 +1,7 @@
 //! Internal api for initializing big arrays.
 //!
-//! For public api see [`Array`]'s [`try_unfold`], [`unfold`], [`try_from_fn`], [`from_fn`] and [`from_iter`].
+//! For public api see [`Array`]'s [`try_unfold`], [`unfold`], [`try_from_fn`],
+//! [`from_fn`] and [`from_iter`].
 //!
 //! [`Array`]: crate::Array
 //! [`try_unfold`]: crate::Array::try_unfold
@@ -91,11 +92,12 @@ where
         ///
         /// This struct is private to this function, because of the unsafe code
         /// in it's `Drop` impl, which is sound only if:
-        /// - `array_base_ptr` is a pointer to the first element of an
-        ///   alive array
-        /// - all elements of `array[.. initialized_count]` (where `array` is the
-        ///   array `array_base_ptr` is pointing to) are initialized...
-        /// - ...so it must be sound to drop these elements using `ptr::drop_in_place`
+        /// - `array_base_ptr` is a pointer to the first element of an alive
+        ///   array
+        /// - all elements of `array[.. initialized_count]` (where `array` is
+        ///   the array `array_base_ptr` is pointing to) are initialized...
+        /// - ...so it must be sound to drop these elements using
+        ///   `ptr::drop_in_place`
         struct DropGuard<Item> {
             // *mut because we need to mutate array, while holding it in guard
             // (it's used only in drop, so hopefully it's ok)

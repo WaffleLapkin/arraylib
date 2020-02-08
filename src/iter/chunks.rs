@@ -80,8 +80,7 @@ impl<I: fmt::Debug, A: Array> fmt::Debug for ArrayChunks<I, A> {
 
 #[cfg(test)]
 mod tests {
-    use crate::iter::IteratorExt;
-    use crate::ArrayExt;
+    use crate::{iter::IteratorExt, ArrayExt};
 
     #[test]
     fn basic_usage() {

@@ -1,7 +1,9 @@
 //! This crate provides API for working with arrays, e.g.:
-//! 1) Abstraction over arrays (you can use [`Array` trait][arr] as bound on generics)
-//! 2) Doing operations on arrays that produce arrays (see [`ArrayExt`] trait)
-//! 3) By-value iterating on array (see [`IterMove`])
+//!   1) Abstraction over arrays (you can use [`Array` trait][arr] as bound on
+//!      generics)
+//!   2) Doing operations on arrays that produce arrays (see
+//!      [`ArrayExt`] trait)
+//!   3) By-value iterating on array (see [`IterMove`])
 //!
 //! [arr]: crate::Array
 //! [`ArrayExt`]: crate::ArrayExt
@@ -10,7 +12,8 @@
 //! ## Example
 //!
 //! ```
-//! use arraylib::{Array, ArrayMap, ArrayExt};
+//! use arraylib::{Array, ArrayExt, ArrayMap};
+//!
 //! // Array creation
 //! let arr = <[_; 11]>::unfold(1, |it| {
 //!     let res = *it;
@@ -28,8 +31,9 @@
 //!
 //! ## Sizes Limitations
 //!
-//! Because of lack of [`const generics`] it's impossible to implement traits on arrays of _all_
-//! sizes (see [std note about that]), so this crate implements traits only for these sizes:
+//! Because of lack of [`const generics`] it's impossible to implement traits on
+//! arrays of _all_ sizes (see [std note about that]), so this crate implements
+//! traits only for these sizes:
 //! - `[0; 32]`
 //! - `8 * [5; 12]` (40, 48, ..., 96)
 //! - `100 * [1; 10]` (100, 200, ..., 1000)
@@ -40,25 +44,30 @@
 //! [`const generics`]: https://github.com/rust-lang/rust/issues/44580
 //! [std note about that]: https://doc.rust-lang.org/std/primitive.array.html
 //!
-//! If you have an array of another size, open an [issue] describing your usecase
-//! or use some [alternative lib]
+//! If you have an array of another size, open an [issue] describing your
+//! usecase or use some [alternative lib]
 //!
 //! [issue]: https://github.com/WaffleLapkin/arraylib/issues/new
 //! [alternative lib]: #Alternatives
 //!
 //! ## no_std
 //!
-//! This lib doesn't depend on `std`, so it can be used in crates with the `#![no_std]` attribute.
+//! This lib doesn't depend on `std`, so it can be used in crates with the
+//! `#![no_std]` attribute.
 //!
 //! ## Features
 //!
 //! This crate provide next features:
 //! - **alloc** — enables API that depend on `alloc` crate
 //! - **nightly** — enable features that require nightly features:
-//!   + `trusted_len` ([tracking issue][trusted_ti]) (Adds impl of `TrustedLen` for iterators)
-//!   + `exact_size_is_empty` ([tracking issue][is_empty_ti]) (Implement `Chunks::is_empty` more effective)
-//! - **array-impls-33-128** — adds impl of the [`Array`][arr] trait for arrays of sizes 33-128 (inclusive)
-//! - **array-impls-129-256** — adds impl of the [`Array`][arr] trait for arrays of sizes 129-256 (inclusive)
+//!   - `trusted_len` ([tracking issue][trusted_ti]) (Adds impl of `TrustedLen`
+//!     for iterators)
+//!   - `exact_size_is_empty` ([tracking issue][is_empty_ti]) (Implement
+//!     `Chunks::is_empty` more effective)
+//! - **array-impls-33-128** — adds impl of the [`Array`][arr] trait for arrays
+//!   of sizes 33-128 (inclusive)
+//! - **array-impls-129-256** — adds impl of the [`Array`][arr] trait for arrays
+//!   of sizes 129-256 (inclusive)
 //!
 //! [trusted_ti]: https://github.com/rust-lang/rust/issues/37572
 //! [is_empty_ti]: https://github.com/rust-lang/rust/issues/35428
@@ -68,8 +77,8 @@
 //! Crates those provide similar API (or part of it):
 //!
 //! - [`generic_array`](https://docs.rs/generic-array)
-//! - [`array_init`](https://docs.rs/array-init/)
-//!   (analogs to [`Array::from_fn`] and [`Array::from_iter`])
+//! - [`array_init`](https://docs.rs/array-init/) (analogs to [`Array::from_fn`]
+//!   and [`Array::from_iter`])
 //! - [`array_ext`](https://docs.rs/array_ext)
 //! - [`slice_as_array`](https://peterreid.github.io/slice_as_array/slice_as_array/index.html)
 //!   (analogs to [`ArrayExt::from_slice`] and [`Array::from_iter`])
@@ -85,7 +94,6 @@
 //! ## Safety
 //!
 //! This crate uses a lot of unsafe code blah blah blah
-//!
 // We use std in tests to catch panic
 #![cfg_attr(not(test), no_std)]
 // Some sweaty nightly features
@@ -114,7 +122,7 @@ pub(crate) mod util {
     pub(crate) mod transmute;
 }
 
-pub use {
+pub use self::{
     array::Array,
     error::SizeError,
     ext::{
@@ -128,7 +136,7 @@ pub use {
 
 /// Iterator related things
 pub mod iter {
-    pub use {chunks::ArrayChunks, ext::IteratorExt, iter_move::IterMove};
+    pub use self::{chunks::ArrayChunks, ext::IteratorExt, iter_move::IterMove};
 
     mod chunks;
     mod ext;

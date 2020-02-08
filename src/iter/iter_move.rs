@@ -4,8 +4,9 @@ use crate::{Array, ArrayShorthand, MaybeUninitSlice};
 
 /// Iterator that moves values out of an array.
 ///
-/// The implementation is very similar to [`std::vec::IntoIter`], however `ArrayIterMove` stores
-/// elements on stack and uses indexes instead of pointers.
+/// The implementation is very similar to [`std::vec::IntoIter`], however
+/// `ArrayIterMove` stores elements on stack and uses indexes instead of
+/// pointers.
 ///
 /// ## Examples
 /// ```
@@ -27,7 +28,8 @@ use crate::{Array, ArrayShorthand, MaybeUninitSlice};
 ///     expected *= 2;
 /// }
 /// ```
-/// This iterator **moves** values out of an array, so it works with `!Copy` types:
+/// This iterator **moves** values out of an array, so it works with `!Copy`
+/// types:
 /// ```
 /// use arraylib::iter::IterMove;
 ///
@@ -43,18 +45,22 @@ use crate::{Array, ArrayShorthand, MaybeUninitSlice};
 ///
 /// ## Implementation details
 ///
-/// Internally `IterMove` represented by `Range<usize>` and `[MaybeUninit<T>; N]`
-/// (`MaybeUninit` is needed to take out elements from an array without copying and `UB`).
+/// Internally `IterMove` represented by `Range<usize>` and
+/// `[MaybeUninit<T>; N]` (`MaybeUninit` is needed to take out elements from an
+/// array without copying and `UB`).
 ///
-/// The range represents "alive" part of the array, so all elements of `inner[alive]` are initialized.
+/// The range represents "alive" part of the array, so all elements of
+/// `inner[alive]` are initialized.
 ///
-/// Diagram of `IterMove<[u32; 8]>` after consuming 3 elements with [`next`] and 2 with [`next_back`]:
+/// Diagram of `IterMove<[u32; 8]>` after consuming 3 elements with [`next`] and
+/// 2 with [`next_back`]:
 /// ```text
 ///                    _____.*------ `alive`
 ///                   /     \
 /// inner: [ ~, ~, ~, 1, 2, 3, ~, ~ ]
 ///          \_____/  \_____/  \__/
-///          |              |     `---- elements consumed with `next_back` (in uninitialized state)
+///          |              |     `---- elements consumed with `next_back`
+///          |              |           (in uninitialized state)
 ///          |              `---- valid elements in initialized state
 ///          `---- elements consumed with `next` (in uninitialized state)
 /// ```
@@ -214,8 +220,8 @@ where
 
             for i in self.alive.clone() {
                 let cloned = unsafe { (&*self.inner.index(i).as_ptr()).clone() };
-                //                     ^^ ---- this deref is safe because we know that elements of
-                //                             `inner[alive]` are initialized
+                //                     ^^ ---- this deref is safe because we know that elements
+                //                             of `inner[alive]` are initialized
                 *array.index_mut(i) = MaybeUninit::new(cloned);
             }
 

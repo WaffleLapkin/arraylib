@@ -28,7 +28,7 @@ pub trait Slice {
     /// ```
     ///
     /// ```
-    /// use arraylib::{Slice, SizeError};
+    /// use arraylib::{SizeError, Slice};
     ///
     /// let slice: &[i32] = &[0, 1, 2, 3, 4];
     /// let result = slice.copied::<[i32; 2]>();
@@ -45,8 +45,8 @@ pub trait Slice {
     /// ## Examples
     ///
     /// ```
-    /// use core::ops::Range;
     /// use arraylib::Slice;
+    /// use core::ops::Range;
     ///
     /// // Range is not `Copy`
     /// let slice: &[Range<usize>] = &[0..1, 1..3, 2..10];
@@ -55,8 +55,8 @@ pub trait Slice {
     /// ```
     ///
     /// ```
+    /// use arraylib::{SizeError, Slice};
     /// use core::ops::Range;
-    /// use arraylib::{Slice, SizeError};
     ///
     /// let slice: &[Range<usize>] = &[0..1, 1..3, 2..10];
     /// let result = slice.cloned::<[Range<usize>; 5]>();
@@ -87,9 +87,10 @@ pub trait MaybeUninitSlice:
     ///
     /// # Safety
     ///
-    /// It is up to the caller to guarantee that all elements of the array are really in an
-    /// initialized state. Calling this when the content is not yet fully initialized causes
-    /// immediate undefined behavior. The [`MaybeUninit's` type-level documentation][inv] contains
+    /// It is up to the caller to guarantee that all elements of the array are
+    /// really in an initialized state. Calling this when the content is not
+    /// yet fully initialized causes immediate undefined behavior. The
+    /// [`MaybeUninit's` type-level documentation][inv] contains
     /// more information about this initialization invariant.
     ///
     /// See also [`MaybeUninit::assume_init`] documentation.
@@ -102,9 +103,10 @@ pub trait MaybeUninitSlice:
     ///
     /// # Safety
     ///
-    /// It is up to the caller to guarantee that all elements of the array are really in an
-    /// initialized state. Calling this when the content is not yet fully initialized causes
-    /// immediate undefined behavior. The [`MaybeUninit's` type-level documentation][inv] contains
+    /// It is up to the caller to guarantee that all elements of the array are
+    /// really in an initialized state. Calling this when the content is not
+    /// yet fully initialized causes immediate undefined behavior. The
+    /// [`MaybeUninit's` type-level documentation][inv] contains
     /// more information about this initialization invariant.
     ///
     /// See also [`MaybeUninit::assume_init`] documentation.

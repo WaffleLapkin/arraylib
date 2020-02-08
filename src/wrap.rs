@@ -14,8 +14,8 @@ use crate::{
 };
 
 /// Wrapper over array types. It implements the same[^1] traits as
-/// [`array`], but not for only arrays of sizes `0..=32` but **for all arrays, those
-/// sizes are supported by the crate**[^2]:
+/// [`array`], but not for only arrays of sizes `0..=32` but **for all arrays,
+/// those sizes are supported by the crate**[^2]:
 /// - [`Debug`]
 /// - [`IntoIterator`]
 /// - [`PartialEq`], [`PartialOrd`], [`Eq`], [`Ord`]
@@ -49,7 +49,7 @@ use crate::{
 ///
 /// [`PartialEq`]/[`Eq`] :
 /// ```
-/// use arraylib::{ArrayWrapper, ArrayExt};
+/// use arraylib::{ArrayExt, ArrayWrapper};
 ///
 /// let arr = [1, 2, 3].wrap();
 /// assert_eq!(arr, [1, 2, 3]);
@@ -63,8 +63,8 @@ use crate::{
 /// ```
 ///
 /// ```
+/// use arraylib::{ArrayExt, ArrayWrapper};
 /// use std::borrow::{Borrow, BorrowMut};
-/// use arraylib::{ArrayWrapper, ArrayExt};
 ///
 /// let mut arr = [1, 2, 3].wrap();
 ///
@@ -72,11 +72,11 @@ use crate::{
 /// assert_eq!(slice, &[1, 2, 3]);
 /// ```
 /// ```
-/// use std::{
-///     hash::{Hasher, Hash},
-///     collections::hash_map::DefaultHasher,
-/// };
 /// use arraylib::ArrayExt;
+/// use std::{
+///     collections::hash_map::DefaultHasher,
+///     hash::{Hash, Hasher},
+/// };
 ///
 /// let mut hasher = DefaultHasher::new();
 /// [1, 2, 3].wrap().hash(&mut hasher);
@@ -93,24 +93,24 @@ use crate::{
 /// use arraylib::ArrayExt;
 ///
 /// let arr = [0, 3, 45, 91].wrap();
-/// for x in arr { }
+/// for x in arr {}
 /// ```
-///
 // [^2] goes before [^1] because otherwise rustdoc parses it the wrong way ¯\_(ツ)_/¯
 ///
-/// [^2]: See [Sizes Limitations](./index.html#sizes-limitations) paragraph in crate docs.
+/// [^2]: See [Sizes Limitations](./index.html#sizes-limitations) paragraph in
+/// crate docs.
 ///
 /// [^1]: differences:
-///   - IntoIterator (on std's [`array`] `IntoIterator` is implemented only on `&[T; N]` and on
-///     `&mut [T; N]` while on ArrayWrapper it's implemented directly (using [`IterMove`])))
+///   - IntoIterator (on std's [`array`] `IntoIterator` is implemented only on
+///     `&[T; N]` and on `&mut [T; N]` while on ArrayWrapper it's implemented
+///     directly (using [`IterMove`]))
 ///   - In some traits instead of [`TryFromSliceError`] there is [`SizeError`]
-///   - [`Copy`]/[`Clone`] are implemented only when `A: Copy/Clone` and not when
-///     `A::Item: Copy/Clone` because we can't use compiler magic :(
+///   - [`Copy`]/[`Clone`] are implemented only when `A: Copy/Clone` and not
+///     when `A::Item: Copy/Clone` because we can't use compiler magic :(
 ///
 /// [`TryFromSliceError`]: core::array::TryFromSliceError
 /// [`SizeError`]: crate::SizeError
 /// [`IterMove`]: crate::iter::IterMove
-///
 #[derive(Copy, Clone)]
 #[repr(transparent)]
 pub struct ArrayWrapper<A> {
@@ -229,12 +229,12 @@ where
 }
 
 /// ```
-/// use core::convert::TryInto;
 /// use arraylib::ArrayWrapper;
+/// use core::convert::TryInto;
 ///
 /// let slice = &[0, 1, 2][..];
-/// let arr: &ArrayWrapper::<[i32; 3]> = slice.try_into().unwrap();
-///assert_eq!(arr, &ArrayWrapper::new([0, 1, 2]))
+/// let arr: &ArrayWrapper<[i32; 3]> = slice.try_into().unwrap();
+/// assert_eq!(arr, &ArrayWrapper::new([0, 1, 2]))
 /// ```
 impl<'a, A> TryFrom<&'a [A::Item]> for &'a ArrayWrapper<A>
 where
@@ -259,12 +259,12 @@ where
 }
 
 /// ```
-/// use core::convert::TryInto;
 /// use arraylib::ArrayWrapper;
+/// use core::convert::TryInto;
 ///
 /// let slice = &mut [0, 1, 2][..];
-/// let arr: &mut ArrayWrapper::<[i32; 3]> = slice.try_into().unwrap();
-///assert_eq!(arr, &ArrayWrapper::new([0, 1, 2]))
+/// let arr: &mut ArrayWrapper<[i32; 3]> = slice.try_into().unwrap();
+/// assert_eq!(arr, &ArrayWrapper::new([0, 1, 2]))
 /// ```
 impl<'a, A> TryFrom<&'a mut [A::Item]> for &'a mut ArrayWrapper<A>
 where
@@ -309,25 +309,30 @@ where
 impl<A, B> PartialOrd<B> for ArrayWrapper<A>
 where
     A: Array,
-    B: Array<Item = A::Item>, // for some reason there is no impl of PartialOrd<[B]> for [A] where A: PartialOrd<B>
+    B: Array<Item = A::Item>, /* for some reason there is no impl of PartialOrd<[B]> for [A]
+                               * where A: PartialOrd<B> */
     A::Item: PartialOrd,
 {
     #[inline]
     fn partial_cmp(&self, other: &B) -> Option<Ordering> {
         PartialOrd::partial_cmp(&self[..], other.as_slice())
     }
+
     #[inline]
     fn lt(&self, other: &B) -> bool {
         PartialOrd::lt(&self[..], other.as_slice())
     }
+
     #[inline]
     fn le(&self, other: &B) -> bool {
         PartialOrd::le(&self[..], other.as_slice())
     }
+
     #[inline]
     fn gt(&self, other: &B) -> bool {
         PartialOrd::gt(&self[..], other.as_slice())
     }
+
     #[inline]
     fn ge(&self, other: &B) -> bool {
         PartialOrd::ge(&self[..], other.as_slice())
@@ -360,8 +365,8 @@ impl<A> IntoIterator for ArrayWrapper<A>
 where
     A: Array,
 {
-    type Item = A::Item;
     type IntoIter = IterMove<Self>;
+    type Item = A::Item;
 
     #[inline]
     fn into_iter(self) -> Self::IntoIter {
@@ -457,6 +462,7 @@ where
 {
     type Item = A::Item;
     type Maybe = ArrayWrapper<A::Maybe>;
+
     const SIZE: usize = A::SIZE;
 
     #[inline]
