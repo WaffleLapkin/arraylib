@@ -3,7 +3,8 @@ use core::mem;
 /// **Extremely unsafe** (even more unsafe that original!) version of
 /// [`mem::transmute`] that doesn't even check sizes of `T` and `U`.
 ///
-/// This function is a wrapper around [`mem::transmute_copy`] that takes ownership.
+/// This function is a wrapper around [`mem::transmute_copy`] that takes
+/// ownership.
 ///
 /// ## Safety
 ///
