@@ -79,7 +79,7 @@ where
                 *array.index_mut(i) = MaybeUninit::new(elem);
             }
 
-            // # Safety
+            // ## Safety
             //
             // We already initialized all elements of the array
             Ok(Arr::assume_init(array))
@@ -107,7 +107,7 @@ where
 
         impl<Item> Drop for DropGuard<Item> {
             fn drop(&mut self) {
-                // # Safety
+                // ## Safety
                 //
                 // The contract of the struct guarantees that this is sound
                 unsafe {
@@ -123,7 +123,7 @@ where
         // If the `init(i)?` call panics or fails, `panic_guard` is dropped,
         // dropping `array[.. initialized_count]` => no memory leak!
         //
-        // # Safety
+        // ## Safety
         //
         // By construction, array[.. initialized_count] only contains
         // init elements, thus there is no risk of dropping uninit data.
@@ -148,7 +148,7 @@ where
             // dropped it could cause "use after free".
             mem::forget(panic_guard);
 
-            // # Safety
+            // ## Safety
             //
             // We already initialized all elements of the array
             Ok(Arr::assume_init(array))

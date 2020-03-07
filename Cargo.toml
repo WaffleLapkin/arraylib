@@ -1,8 +1,22 @@
 [package]
-name = "arraylib" # TODO: I'm not sure about the name
+name = "arraylib"
+description = "Tools for working with arrays"
 version = "0.1.0"
 authors = ["Waffle <waffle.lapkin@gmail.com>"]
+license = "MIT"
 edition = "2018"
+
+repository = "https://github.com/WaffleLapkin/arraylib/"
+homepage = "https://github.com/WaffleLapkin/arraylib/"
+documentation = "https://docs.rs/arraylib/"
+readme = "README.md"
+
+keywords = ["no_std", "array"]
+categories = ["no-std", "rust-patterns"]
+
+exclude = [
+    ".github/*",
+]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -14,9 +28,11 @@ alloc = []
 
 # Currently used nightly features:
 # - trusted_len (for implementing `TrustedLen` on array's `IterMove`)
-# - exact_size_is_empty (for more optimized implementation of `ExactSizeIterator::is_empty` for `ArrayChunks`)
+# - `exact_size_is_empty` (for implementing `<{Chunks,IterMove} as ExactSizeIterator>::is_empty` more effective)
 nightly = []
 
 array-impls-33-128 = []
 array-impls-129-256 = []
 
+[package.metadata.docs.rs]
+all-features = true
