@@ -107,7 +107,7 @@ where
     pub fn as_slice(&self) -> &[A::Item] {
         unsafe {
             let slice: &[MaybeUninit<A::Item>] = self.inner.index(self.alive.clone());
-            // # Safety
+            // ## Safety
             //
             // All elements of inner[alive] are guaranteed to be initialized
             slice.assume_init()
@@ -135,7 +135,7 @@ where
     pub fn as_mut_slice(&mut self) -> &mut [A::Item] {
         unsafe {
             let slice: &mut [MaybeUninit<A::Item>] = self.inner.index_mut(self.alive.clone());
-            // # Safety
+            // ## Safety
             //
             // All elements of inner[alive] are guaranteed to be initialized
             slice.assume_init_mut()
@@ -155,6 +155,10 @@ where
             // return if there are no more elements
             let idx = self.alive.next()?;
 
+            // ## Safety
+            //
+            // `IterMove` guarantees that `inner[alive]`, `idx` is taken from `alive` so
+            // `inner[idx]` is initialized at the moment, but shouldn't in the future.
             let result: A::Item = self.inner.replace(idx, MaybeUninit::uninit()).assume_init();
 
             Some(result)
@@ -183,6 +187,10 @@ where
             // return if there are no more elements
             let idx = self.alive.next_back()?;
 
+            // ## Safety
+            //
+            // `IterMove` guarantees that `inner[alive]`, `idx` is taken from `alive` so
+            // `inner[idx]` is initialized at the moment, but shouldn't in the future.
             let result: A::Item = self.inner.replace(idx, MaybeUninit::uninit()).assume_init();
 
             Some(result)
@@ -197,6 +205,12 @@ where
     #[inline]
     fn len(&self) -> usize {
         self.alive.len()
+    }
+
+    #[inline]
+    #[cfg(feature = "nightly")]
+    fn is_empty(&self) -> bool {
+        ExactSizeIterator::is_empty(&self.alive)
     }
 }
 
@@ -219,9 +233,13 @@ where
             let mut array: A::Maybe = A::uninit();
 
             for i in self.alive.clone() {
-                let cloned = unsafe { (&*self.inner.index(i).as_ptr()).clone() };
-                //                     ^^ ---- this deref is safe because we know that elements
-                //                             of `inner[alive]` are initialized
+                let cloned = unsafe {
+                    // ## Safety
+                    //
+                    // This deref is safe because we know that elements
+                    // of `inner[alive]` are initialized
+                    (&*self.inner.index(i).as_ptr()).clone()
+                };
                 *array.index_mut(i) = MaybeUninit::new(cloned);
             }
 

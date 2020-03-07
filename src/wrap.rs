@@ -8,10 +8,7 @@ use core::{
     slice::SliceIndex,
 };
 
-use crate::{
-    iter::IterMove, util::transmute::extremely_unsafe_transmute, Array, ArrayExt, ArrayShorthand,
-    SizeError,
-};
+use crate::{iter::IterMove, Array, ArrayExt, ArrayShorthand, SizeError};
 
 /// Wrapper over array types. It implements the same[^1] traits as
 /// [`array`], but not for only arrays of sizes `0..=32` but **for all arrays,
@@ -247,13 +244,14 @@ where
         unsafe {
             SizeError::expect_size(slice, <ArrayWrapper<A>>::SIZE, ())?;
 
-            // # Safety
+            // ## Safety
             //
-            // Trust me I'm an engineer
-            Ok(&*extremely_unsafe_transmute::<
-                *const A::Item,
-                *const ArrayWrapper<A>,
-            >(slice.as_ptr()))
+            // Slice and array of the same size must have the same ABI, so we can safely get
+            // `&ArrayWrapper` from `&[A::Item]`.
+            //
+            // But we can't transmute slice ref directly to array ref because
+            // first is fat pointer and second is not.
+            Ok(&*(slice.as_ptr() as *const ArrayWrapper<A>))
         }
     }
 }
@@ -277,13 +275,14 @@ where
         unsafe {
             SizeError::expect_size(slice, <ArrayWrapper<A>>::SIZE, ())?;
 
-            // # Safety
+            // ## Safety
             //
-            // Trust me I'm an engineer
-            Ok(&mut *extremely_unsafe_transmute::<
-                *mut A::Item,
-                *mut ArrayWrapper<A>,
-            >(slice.as_mut_ptr()))
+            // Slice and array of the same size must have the same ABI, so we can safely get
+            // `&mut ArrayWrapper` from `&mut [A::Item]`.
+            //
+            // But we can't transmute slice ref directly to array ref because
+            // first is fat pointer and second is not.
+            Ok(&mut *(slice.as_mut_ptr() as *mut ArrayWrapper<A>))
         }
     }
 }

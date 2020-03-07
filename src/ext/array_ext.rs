@@ -128,7 +128,7 @@ pub trait ArrayExt: Array {
         A: Array<Item = Self::Item>,
     {
         let slf = SizeError::expect(Self::SIZE, A::SIZE, self)?;
-        // # Safety
+        // ## Safety
         //
         // Item types and sizes are same for both `Self` and `A`, so it's the same type.
         Ok(unsafe { extremely_unsafe_transmute::<Self, A>(slf) })

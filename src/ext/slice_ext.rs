@@ -85,7 +85,7 @@ pub trait MaybeUninitSlice:
 
     /// Assume that all items of self are initialized
     ///
-    /// # Safety
+    /// ## Safety
     ///
     /// It is up to the caller to guarantee that all elements of the array are
     /// really in an initialized state. Calling this when the content is not
@@ -101,7 +101,7 @@ pub trait MaybeUninitSlice:
 
     /// Assume that all items of self are initialized
     ///
-    /// # Safety
+    /// ## Safety
     ///
     /// It is up to the caller to guarantee that all elements of the array are
     /// really in an initialized state. Calling this when the content is not
@@ -168,7 +168,7 @@ impl<T> MaybeUninitSlice for [MaybeUninit<T>] {
 
     #[inline]
     fn from_init(init: &[Self::InitItem]) -> &Self {
-        // # Safety
+        // ## Safety
         //
         // `MaybeUninit<T>` is guaranteed to have the same ABI as `T`, so
         // it's safe to cast `&[T]` to `&[MaybeUninit<T>]`
@@ -177,7 +177,7 @@ impl<T> MaybeUninitSlice for [MaybeUninit<T>] {
 
     #[inline]
     fn from_init_mut(init: &mut [Self::InitItem]) -> &mut Self {
-        // # Safety
+        // ## Safety
         //
         // `MaybeUninit<T>` is guaranteed to have the same ABI as `T`, so
         // it's safe to cast `&mut [T]` to `&mut [MaybeUninit<T>]`

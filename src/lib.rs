@@ -1,13 +1,17 @@
 //! This crate provides API for working with arrays, e.g.:
-//!   1) Abstraction over arrays (you can use [`Array` trait][arr] as bound on
+//!   1) Abstraction over arrays (you can use [`Array`] trait as bound on
 //!      generics)
-//!   2) Doing operations on arrays that produce arrays (see
-//!      [`ArrayExt`] trait)
-//!   3) By-value iterating on array (see [`IterMove`])
+//!   2) Creation of arrays (see [`Array`] trait)
+//!   3) Doing operations on arrays that produce arrays (see
+//!      [`ArrayMap`] and [`ArrayAsRef`] traits)
+//!   4) By-value iterating on array (see [`IterMove`])
+//!   5) `Iterator` adapter that yield fixed sized chunks of inner iterator
+//!      (see [`ArrayChunks`])
 //!
-//! [arr]: crate::Array
+//! [`Array`]: crate::Array
 //! [`ArrayExt`]: crate::ArrayExt
 //! [`IterMove`]: crate::iter::IterMove
+//! [`ArrayChunks`]: crate::iter::ArrayChunks
 //!
 //! ## Example
 //!
@@ -44,12 +48,6 @@
 //! [`const generics`]: https://github.com/rust-lang/rust/issues/44580
 //! [std note about that]: https://doc.rust-lang.org/std/primitive.array.html
 //!
-//! If you have an array of another size, open an [issue] describing your
-//! usecase or use some [alternative lib]
-//!
-//! [issue]: https://github.com/WaffleLapkin/arraylib/issues/new
-//! [alternative lib]: #Alternatives
-//!
 //! ## no_std
 //!
 //! This lib doesn't depend on `std`, so it can be used in crates with the
@@ -63,11 +61,11 @@
 //!   - `trusted_len` ([tracking issue][trusted_ti]) (Adds impl of `TrustedLen`
 //!     for iterators)
 //!   - `exact_size_is_empty` ([tracking issue][is_empty_ti]) (Implement
-//!     `Chunks::is_empty` more effective)
-//! - **array-impls-33-128** — adds impl of the [`Array`][arr] trait for arrays
-//!   of sizes 33-128 (inclusive)
-//! - **array-impls-129-256** — adds impl of the [`Array`][arr] trait for arrays
-//!   of sizes 129-256 (inclusive)
+//!     `<{Chunks,IterMove} as ExactSizeIterator>::is_empty` more effective)
+//! - **array-impls-33-128** — adds impl of the [`Array`] trait for arrays of
+//!   sizes 33-128 (inclusive)
+//! - **array-impls-129-256** — adds impl of the [`Array`] trait for arrays of
+//!   sizes 129-256 (inclusive)
 //!
 //! [trusted_ti]: https://github.com/rust-lang/rust/issues/37572
 //! [is_empty_ti]: https://github.com/rust-lang/rust/issues/35428
@@ -93,7 +91,15 @@
 //!
 //! ## Safety
 //!
-//! This crate uses a lot of unsafe code blah blah blah
+//! To achieve good performance and support so many array sizes, this
+//! crate uses a alot of unsafe code (by commit `079871cc` there are 17 `unsafe
+//! {}` blocks). All `unsafe`s were checked with care and have a "Safety"
+//! comment.
+//!
+//! If you see that some `unsafe`s could be removed without performance loss (we
+//! need benchmarks, oh) please fill an [issue].
+//!
+//! [issue]: https://github.com/WaffleLapkin/arraylib/issues/new
 // We use std in tests to catch panic
 #![cfg_attr(not(test), no_std)]
 // Some sweaty nightly features
@@ -168,7 +174,7 @@ mod ext {
     pub(super) mod slice_ext;
 }
 
-// Run tests from readme
+/// Run tests from readme
 #[cfg_attr(feature = "nightly", doc(include = "../README.md"))]
 #[cfg(doctest)]
 pub struct ReadmeDocTests;

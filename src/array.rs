@@ -188,8 +188,9 @@ pub unsafe trait Array: Sized {
     fn into_uninit(self) -> Self::Maybe {
         // Note: copy-pasted from https://doc.rust-lang.org/nightly/src/core/array/iter.rs.html
 
-        // SAFETY: The transmute here is actually safe. The docs of `MaybeUninit`
-        // promise:
+        // ## Safety
+        //
+        // The transmute here is actually safe. The docs of `MaybeUninit` promise:
         //
         // > `MaybeUninit<T>` is guaranteed to have the same size and alignment
         // > as `T`.
@@ -221,6 +222,8 @@ pub unsafe trait Array: Sized {
     #[allow(clippy::uninit_assumed_init)]
     fn uninit() -> Self::Maybe {
         unsafe {
+            // ## Safety
+            //
             // Completely safe as `MaybeUninit` don't require initialization
             MaybeUninit::uninit().assume_init()
         }
@@ -229,7 +232,7 @@ pub unsafe trait Array: Sized {
     // doc is mostly copy-pasted from core::mem::MaybeUninit::assume_init
     /// Extracts the values from the [`MaybeUninit<T>`] containers.
     ///
-    /// # Safety
+    /// ## Safety
     ///
     /// It is up to the caller to guarantee that all elements of the array are
     /// really in an initialized state. Calling this when the content is not

@@ -46,7 +46,6 @@ where
 {
     #[inline]
     fn next_back(&mut self) -> Option<Self::Item> {
-        // TODO: I'm not sure about semantic
         A::from_iter(self.iter.by_ref().rev())
     }
 }
