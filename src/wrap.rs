@@ -241,17 +241,20 @@ where
 
     #[inline]
     fn try_from(slice: &'a [A::Item]) -> Result<Self, SizeError> {
-        unsafe {
-            SizeError::expect_size(slice, <ArrayWrapper<A>>::SIZE, ())?;
-
-            // ## Safety
-            //
-            // Slice and array of the same size must have the same ABI, so we can safely get
-            // `&ArrayWrapper` from `&[A::Item]`.
-            //
-            // But we can't transmute slice ref directly to array ref because
-            // first is fat pointer and second is not.
-            Ok(&*(slice.as_ptr() as *const ArrayWrapper<A>))
+        // TODO: >=?
+        if slice.len() == <ArrayWrapper<A>>::SIZE {
+            unsafe {
+                // ## Safety
+                //
+                // Slice and array of the same size must have the same ABI, so we can safely get
+                // `&ArrayWrapper` from `&[A::Item]`.
+                //
+                // But we can't transmute slice ref directly to array ref because
+                // first is fat pointer and second is not.
+                Ok(&*(slice.as_ptr() as *const ArrayWrapper<A>))
+            }
+        } else {
+            Err(SizeError::default())
         }
     }
 }
@@ -272,17 +275,20 @@ where
 
     #[inline]
     fn try_from(slice: &'a mut [A::Item]) -> Result<Self, SizeError> {
-        unsafe {
-            SizeError::expect_size(slice, <ArrayWrapper<A>>::SIZE, ())?;
-
-            // ## Safety
-            //
-            // Slice and array of the same size must have the same ABI, so we can safely get
-            // `&mut ArrayWrapper` from `&mut [A::Item]`.
-            //
-            // But we can't transmute slice ref directly to array ref because
-            // first is fat pointer and second is not.
-            Ok(&mut *(slice.as_mut_ptr() as *mut ArrayWrapper<A>))
+        // TODO: >=?
+        if slice.len() == <ArrayWrapper<A>>::SIZE {
+            unsafe {
+                // ## Safety
+                //
+                // Slice and array of the same size must have the same ABI, so we can safely get
+                // `&mut ArrayWrapper` from `&mut [A::Item]`.
+                //
+                // But we can't transmute slice ref directly to array ref because
+                // first is fat pointer and second is not.
+                Ok(&mut *(slice.as_mut_ptr() as *mut ArrayWrapper<A>))
+            }
+        } else {
+            Err(SizeError::default())
         }
     }
 }
