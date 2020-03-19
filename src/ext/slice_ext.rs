@@ -24,7 +24,7 @@ pub trait Slice {
     ///
     /// let slice: &[i32] = &[0, 1, 2, 3, 4];
     /// let array: [i32; 5] = slice.copied().unwrap();
-    /// assert_eq!(array, [0, 1, 2, 3, 4])
+    /// assert_eq!(array, [0, 1, 2, 3, 4]);
     /// ```
     ///
     /// ```
@@ -32,7 +32,7 @@ pub trait Slice {
     ///
     /// let slice: &[i32] = &[0, 1, 2, 3, 4];
     /// let result = slice.copied::<[i32; 2]>();
-    /// assert_eq!(result, Err(SizeError::Greater(3, ())))
+    /// assert_eq!(result, Err(SizeError::default()));
     /// ```
     fn copied<A>(&self) -> Result<A, SizeError>
     where
@@ -51,7 +51,7 @@ pub trait Slice {
     /// // Range is not `Copy`
     /// let slice: &[Range<usize>] = &[0..1, 1..3, 2..10];
     /// let array: [Range<usize>; 3] = slice.cloned().unwrap();
-    /// assert_eq!(array, [0..1, 1..3, 2..10])
+    /// assert_eq!(array, [0..1, 1..3, 2..10]);
     /// ```
     ///
     /// ```
@@ -60,7 +60,7 @@ pub trait Slice {
     ///
     /// let slice: &[Range<usize>] = &[0..1, 1..3, 2..10];
     /// let result = slice.cloned::<[Range<usize>; 5]>();
-    /// assert_eq!(result, Err(SizeError::Less(2, ())))
+    /// assert_eq!(result, Err(SizeError::default()));
     /// ```
     fn cloned<A>(&self) -> Result<A, SizeError>
     where

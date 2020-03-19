@@ -127,11 +127,14 @@ pub trait ArrayExt: Array {
     where
         A: Array<Item = Self::Item>,
     {
-        let slf = SizeError::expect(Self::SIZE, A::SIZE, self)?;
-        // ## Safety
-        //
-        // Item types and sizes are same for both `Self` and `A`, so it's the same type.
-        Ok(unsafe { extremely_unsafe_transmute::<Self, A>(slf) })
+        if Self::SIZE == A::SIZE {
+            // ## Safety
+            //
+            // Item types and sizes are same for both `Self` and `A`, so it's the same type.
+            Ok(unsafe { extremely_unsafe_transmute::<Self, A>(self) })
+        } else {
+            Err(SizeError(self))
+        }
     }
 
     /// Copies `self` into a new `Vec`.
@@ -201,16 +204,18 @@ pub trait ArrayExt: Array {
     /// let slice = &[1, 2, 3, 4];
     /// let arr = <[i32; 2]>::from_slice(slice);
     /// //          ^^^^^^ ---- wrong size, slice len = 4, arr len = 2
-    /// assert_eq!(arr, Err(SizeError::Greater(2, ())));
+    /// assert_eq!(arr, Err(SizeError::default()));
     /// ```
     #[inline]
     fn from_slice(slice: &[Self::Item]) -> Result<Self, SizeError>
     where
         Self::Item: Copy,
     {
-        SizeError::expect_size(slice, Self::SIZE, ())?;
-
-        Ok(Self::from_iter(slice.iter().copied()).unwrap())
+        if slice.len() == Self::SIZE {
+            Ok(Self::from_iter(slice.iter().copied()).unwrap())
+        } else {
+            Err(SizeError::default())
+        }
     }
 
     /// Create array from slice. Return `Err(())` if `slice.len != Self::SIZE`.
@@ -235,9 +240,11 @@ pub trait ArrayExt: Array {
     where
         Self::Item: Clone,
     {
-        SizeError::expect_size(slice, Self::SIZE, ())?;
-
-        Ok(Self::from_iter(slice.iter().cloned()).unwrap())
+        if slice.len() == Self::SIZE {
+            Ok(Self::from_iter(slice.iter().cloned()).unwrap())
+        } else {
+            Err(SizeError::default())
+        }
     }
 
     /// Wrap `self` into [`ArrayWrapper`](crate::ArrayWrapper)
