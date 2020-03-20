@@ -73,7 +73,7 @@ jobs:
 
       - name: miri test
         uses: actions-rs/cargo@v1
-          if: matrix.rust == 'nightly'
-          with:
-            command: miri
-            args: test
+        if: matrix.rust == 'nightly'
+        with:
+          command: miri
+          args: test
