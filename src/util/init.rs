@@ -15,7 +15,7 @@ use core::{
     ptr, slice,
 };
 
-use crate::{Array, ArrayShorthand, MaybeUninitSlice};
+use crate::{Array, ArrayShorthand};
 
 #[inline]
 pub(crate) fn array_init_fn<Arr, F>(mut init: F) -> Arr
@@ -101,7 +101,7 @@ where
         struct DropGuard<Item> {
             // *mut because we need to mutate array, while holding it in guard
             // (it's used only in drop, so hopefully it's ok)
-            array_base_ptr: *mut MaybeUninit<Item>,
+            array_base_ptr: *mut Item,
             initialized_count: usize,
         }
 
@@ -112,8 +112,7 @@ where
                 // The contract of the struct guarantees that this is sound
                 unsafe {
                     let slice =
-                        slice::from_raw_parts_mut(self.array_base_ptr, self.initialized_count)
-                            .assume_init_mut();
+                        slice::from_raw_parts_mut(self.array_base_ptr, self.initialized_count);
 
                     ptr::drop_in_place(slice);
                 }
@@ -129,8 +128,9 @@ where
         // init elements, thus there is no risk of dropping uninit data.
         unsafe {
             let mut array = Arr::uninit();
+            let array_base_ptr = array.as_mut_slice().as_mut_ptr() as *mut Arr::Item;
             let mut panic_guard = DropGuard {
-                array_base_ptr: array.as_mut_slice().as_mut_ptr(),
+                array_base_ptr,
                 initialized_count: 0,
             };
 
@@ -139,9 +139,12 @@ where
                 // Invariant: `i` elements have already been initialized
                 panic_guard.initialized_count = i;
                 // If this panics or fails, `panic_guard` is dropped, thus
-                // dropping the elements in `base_ptr[.. i]`
+                // dropping the elements in `array_base_ptr[.. i]`
                 let value = f(&mut state)?;
-                *array.index_mut(i) = MaybeUninit::new(value);
+                // We can't use
+                // `*array.index_mut(i) = MaybeUninit::new(value);`
+                // here because of miri (see https://github.com/WaffleLapkin/arraylib/issues/5)
+                array_base_ptr.add(i).write(value)
             }
 
             // Next line return array from function, so if `panic_guard` will be
