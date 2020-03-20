@@ -20,7 +20,7 @@ jobs:
           profile: minimal
           toolchain: ${{ matrix.rust }}
           override: true
-          components: rustfmt, clippy
+          components: rustfmt, clippy, miri
 
       - name: stable/beta build 
         uses: actions-rs/cargo@v1
@@ -70,3 +70,10 @@ jobs:
         with:
           command: clippy
           args: --all-targets --all-features -- -D warnings
+
+      - name: miri test
+        uses: actions-rs/cargo@v1
+          if: matrix.rust == 'nightly'
+          with:
+            command: miri
+            args: test
