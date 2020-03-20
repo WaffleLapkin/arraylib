@@ -80,6 +80,14 @@ jobs:
           command: clippy
           args: --all-targets --all-features -- -D warnings
 
+
+      - name: miri setup
+        uses: actions-rs/cargo@v1
+        if: matrix.rust == 'nightly'
+        with:
+          command: miri
+          args: setup
+
       - name: miri test
         uses: actions-rs/cargo@v1
         if: matrix.rust == 'nightly'
