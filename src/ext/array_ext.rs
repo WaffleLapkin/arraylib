@@ -252,6 +252,221 @@ pub trait ArrayExt: Array {
     fn wrap(self) -> ArrayWrapper<Self> {
         ArrayWrapper::new(self)
     }
+
+    /// Safely cast `&[T]` to `&Self` (`[T; N]`)
+    ///
+    /// ## Panics
+    ///
+    /// Panics if size of `slice` is less than size of `Self`.
+    ///
+    /// ## Examples
+    ///
+    /// ```
+    /// use arraylib::ArrayExt;
+    ///
+    /// let vec = vec![1, 0, 2, 14];
+    /// assert_eq!(<[i32; 4]>::ref_cast(&vec[..]), &[1, 0, 2, 14]);
+    /// ```
+    ///
+    /// ```should_panic
+    /// # use arraylib::ArrayExt;
+    /// // panics
+    /// <[i32; 4]>::ref_cast(&[1, 2][..]);
+    /// ```
+    #[inline]
+    fn ref_cast(slice: &[Self::Item]) -> &Self {
+        match Self::try_ref_cast(slice) {
+            Ok(x) => x,
+            Err(_) => size_expectation_failed(),
+        }
+    }
+
+    /// Safely cast `&mut [T]` to `&mut Self` (`[T; N]`)
+    ///
+    /// ## Panics
+    ///
+    /// Panics if size of `slice` is less than size of `Self`.
+    ///
+    /// ## Examples
+    ///
+    /// ```
+    /// use arraylib::{ArrayExt, SizeError};
+    ///
+    /// let mut vec = vec![1, 0, 2, 14];
+    /// assert_eq!(<[i32; 4]>::mut_cast(&mut vec[..]), &mut [1, 0, 2, 14]);
+    /// ```
+    ///
+    /// ```should_panic
+    /// # use arraylib::ArrayExt;
+    /// // panics
+    /// <[i32; 4]>::mut_cast(&mut [1, 2][..]);
+    /// ```
+    #[inline]
+    fn mut_cast(slice: &mut [Self::Item]) -> &mut Self {
+        match Self::try_mut_cast(slice) {
+            Ok(x) => x,
+            Err(_) => size_expectation_failed(),
+        }
+    }
+
+    /// Safely cast `&[T]` to `&Self` (`[T; N]`)
+    ///
+    /// ## Errors
+    ///
+    /// If size of `slice` is less than size of `Self`, then an error is
+    /// returned.
+    ///
+    /// ## Examples
+    ///
+    /// ```
+    /// use arraylib::{ArrayExt, SizeError};
+    ///
+    /// let vec = vec![1, 0, 2, 14];
+    /// assert_eq!(<[i32; 4]>::try_ref_cast(&vec[..]), Ok(&[1, 0, 2, 14]));
+    /// assert_eq!(
+    ///     <[i32; 4]>::try_ref_cast(&vec[1..=2]),
+    ///     Err(SizeError(&[0, 2][..]))
+    /// );
+    /// ```
+    #[inline]
+    fn try_ref_cast(slice: &[Self::Item]) -> Result<&Self, SizeError<&[Self::Item]>> {
+        unsafe {
+            if slice.len() >= Self::SIZE {
+                Ok(Self::ref_cast_unchecked(slice))
+            } else {
+                Err(SizeError(slice))
+            }
+        }
+    }
+
+    /// Safely cast `&mut [T]` to `&mut Self` (`[T; N]`)
+    ///
+    /// ## Errors
+    ///
+    /// If size of `slice` is less than size of `Self`, then an error is
+    /// returned.
+    ///
+    /// ## Examples
+    ///
+    /// ```
+    /// use arraylib::{ArrayExt, SizeError};
+    ///
+    /// let mut vec = vec![1, 0, 2, 14];
+    /// assert_eq!(
+    ///     <[i32; 4]>::try_mut_cast(&mut vec[..]),
+    ///     Ok(&mut [1, 0, 2, 14])
+    /// );
+    /// assert_eq!(
+    ///     <[i32; 4]>::try_mut_cast(&mut vec[1..=2]),
+    ///     Err(SizeError(&mut [0, 2][..]))
+    /// );
+    /// ```
+    #[inline]
+    fn try_mut_cast(slice: &mut [Self::Item]) -> Result<&mut Self, SizeError<&mut [Self::Item]>> {
+        unsafe {
+            if slice.len() >= Self::SIZE {
+                Ok(Self::mut_cast_unchecked(slice))
+            } else {
+                Err(SizeError(slice))
+            }
+        }
+    }
+
+    /// Unsafety cast `&[T]` to `&Self` (`[T; N]`)
+    ///
+    /// ## Safety
+    ///
+    /// To safely call this function you need to ensure that size of slice is
+    /// not less than the size of array: `slice.len() >= Self::SIZE`
+    ///
+    /// ## Examples
+    ///
+    /// ok usage:
+    /// ```
+    /// use arraylib::ArrayExt;
+    ///
+    /// let vec = vec![1, 0, 2, 14];
+    ///
+    /// let _: &[i32; 4] = unsafe {
+    ///     // Safe because we know that size of `vec` is equal 4
+    ///     <[i32; 4]>::ref_cast_unchecked(&vec[..])
+    /// };
+    /// ```
+    /// **wrong** (UB) usage:
+    /// ```no_run
+    /// use arraylib::ArrayExt;
+    ///
+    /// let vec = vec![1, 0, 2, 14];
+    ///
+    /// let _: &[i32; 4] = unsafe {
+    ///     // size of slice borrowed from `vec` is not equal to 4 so this is UB
+    ///     <[i32; 4]>::ref_cast_unchecked(&vec[1..])
+    /// };
+    /// ```
+    #[inline]
+    unsafe fn ref_cast_unchecked(slice: &[Self::Item]) -> &Self {
+        // ## (Un)Safety
+        //
+        // Slice and array of the same size must have the same ABI, so we can safely get
+        // `&[T; N]` from `&[A::Item]` **if `slice.len()` >= N**. Here it is not
+        // checked, so this method is unsafe.
+        //
+        // We can't transmute slice ref directly to array ref because
+        // first is fat pointer and second is not.
+        &*(slice.as_ptr() as *const Self)
+    }
+
+    /// Unsafety cast `&mut [T]` to `&mut Self` (`[T; N]`)
+    ///
+    /// ## Safety
+    ///
+    /// To safely call this function you need to ensure that size of slice is
+    /// not less than the size of array: `slice.len() >= Self::SIZE`
+    ///
+    /// ## Examples
+    ///
+    /// ok usage:
+    /// ```
+    /// use arraylib::ArrayExt;
+    ///
+    /// let mut vec = vec![1, 0, 2, 14];
+    ///
+    /// let _: &[i32; 4] = unsafe {
+    ///     // Safe because we know that size of `vec` is equal 4
+    ///     <[i32; 4]>::ref_cast_unchecked(&mut vec[..])
+    /// };
+    /// ```
+    /// **wrong** (UB) usage:
+    /// ```no_run
+    /// use arraylib::ArrayExt;
+    ///
+    /// let mut vec = vec![1, 0, 2, 14];
+    ///
+    /// let _: &[i32; 4] = unsafe {
+    ///     // size of slice borrowed from `vec` is not equal to 4 so this is UB
+    ///     <[i32; 4]>::ref_cast_unchecked(&mut vec[1..])
+    /// };
+    /// ```
+    #[inline]
+    unsafe fn mut_cast_unchecked(slice: &mut [Self::Item]) -> &mut Self {
+        // ## (Un)Safety
+        //
+        // Slice and array of the same size must have the same ABI, so we can safely get
+        // `&mut [T; N]` from `&mut [A::Item]` **if `slice.len()` >= N**. Here it is not
+        // checked, so this method is unsafe.
+        //
+        // We can't transmute slice ref directly to array ref because
+        // first is fat pointer and second is not.
+        &mut *(slice.as_mut_ptr() as *mut Self)
+    }
 }
 
 impl<A> ArrayExt for A where A: Array {}
+
+// This is a separate function to reduce the code size of ref_cast/mut_cast
+// functions.
+#[cold]
+#[inline(never)]
+fn size_expectation_failed() -> ! {
+    panic!("size of `slice` must not be less than size of `Self` to ref cast to success")
+}

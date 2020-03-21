@@ -225,6 +225,12 @@ where
     }
 }
 
+/// Alias for [`ArrayExt::try_ref_cast`][alias]
+///
+/// [alias]: crate::ArrayExt::try_ref_cast
+///
+/// ## Examples
+///
 /// ```
 /// use arraylib::ArrayWrapper;
 /// use core::convert::TryInto;
@@ -237,28 +243,20 @@ impl<'a, A> TryFrom<&'a [A::Item]> for &'a ArrayWrapper<A>
 where
     A: Array,
 {
-    type Error = SizeError;
+    type Error = SizeError<&'a [A::Item]>;
 
     #[inline]
-    fn try_from(slice: &'a [A::Item]) -> Result<Self, SizeError> {
-        // TODO: >=?
-        if slice.len() == <ArrayWrapper<A>>::SIZE {
-            unsafe {
-                // ## Safety
-                //
-                // Slice and array of the same size must have the same ABI, so we can safely get
-                // `&ArrayWrapper` from `&[A::Item]`.
-                //
-                // But we can't transmute slice ref directly to array ref because
-                // first is fat pointer and second is not.
-                Ok(&*(slice.as_ptr() as *const ArrayWrapper<A>))
-            }
-        } else {
-            Err(SizeError::default())
-        }
+    fn try_from(slice: &'a [A::Item]) -> Result<Self, Self::Error> {
+        <_>::try_ref_cast(slice)
     }
 }
 
+/// Alias for [`ArrayExt::try_mut_cast`][alias]
+///
+/// [alias]: crate::ArrayExt::try_mut_cast
+///
+/// ## Examples
+///
 /// ```
 /// use arraylib::ArrayWrapper;
 /// use core::convert::TryInto;
@@ -271,25 +269,11 @@ impl<'a, A> TryFrom<&'a mut [A::Item]> for &'a mut ArrayWrapper<A>
 where
     A: Array,
 {
-    type Error = SizeError;
+    type Error = SizeError<&'a mut [A::Item]>;
 
     #[inline]
-    fn try_from(slice: &'a mut [A::Item]) -> Result<Self, SizeError> {
-        // TODO: >=?
-        if slice.len() == <ArrayWrapper<A>>::SIZE {
-            unsafe {
-                // ## Safety
-                //
-                // Slice and array of the same size must have the same ABI, so we can safely get
-                // `&mut ArrayWrapper` from `&mut [A::Item]`.
-                //
-                // But we can't transmute slice ref directly to array ref because
-                // first is fat pointer and second is not.
-                Ok(&mut *(slice.as_mut_ptr() as *mut ArrayWrapper<A>))
-            }
-        } else {
-            Err(SizeError::default())
-        }
+    fn try_from(slice: &'a mut [A::Item]) -> Result<Self, Self::Error> {
+        <_>::try_mut_cast(slice)
     }
 }
 
