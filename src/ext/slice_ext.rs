@@ -1,6 +1,6 @@
 use core::mem::MaybeUninit;
 
-use crate::{Array, ArrayExt, SizeError};
+use crate::{iter::ArrayWindows, Array, ArrayExt, SizeError};
 
 /// Extension for [`slice`]
 ///
@@ -66,6 +66,56 @@ pub trait Slice {
     where
         A: Array<Item = Self::Item>,
         A::Item: Clone;
+
+    /// Returns an iterator over all contiguous windows of type `A` (length `A::SIZE`).
+    /// The windows overlap. If the slice is shorter than size (`A::SIZE`), the iterator returns
+    /// `None`.
+    ///
+    /// ## Panics
+    ///
+    /// Panics if `A::SIZE` is 0 (`A = [T; 0]`).
+    ///
+    /// ## Examples
+    ///
+    /// ```
+    /// use arraylib::Slice;
+    ///
+    /// let mut iter = [1, 2, 3, 4].array_windows::<[_; 2]>();
+    /// assert_eq!(iter.next(), Some(&[1, 2]));
+    /// assert_eq!(iter.next(), Some(&[2, 3]));
+    /// assert_eq!(iter.next(), Some(&[3, 4]));
+    /// assert_eq!(iter.next(), None);
+    /// ```
+    ///
+    /// In difference with [`<[T]>::windows`], this method returns iterator that returns _arrays_,
+    /// so you can use array destruction:
+    ///
+    /// [`<[T]>::windows`]: https://doc.rust-lang.org/std/primitive.slice.html#method.windows
+    ///
+    /// ```
+    /// use arraylib::Slice;
+    ///
+    /// assert_eq!(
+    ///     [1, 2, 3, 4, 5]
+    ///         .array_windows::<[_; 3]>()
+    ///         .map(|[a, b, c]| a + b + c)
+    ///         .sum::<u32>(),
+    ///     27
+    /// )
+    /// ```
+    ///
+    /// If the slice is shorter than size:
+    ///
+    /// ```
+    /// use arraylib::Slice;
+    ///
+    /// let slice = ['f', 'o', 'o'];
+    /// let mut iter = slice.array_windows::<[_; 4]>();
+    /// assert!(iter.next().is_none());
+    /// ```
+    fn array_windows<A>(&self) -> ArrayWindows<A>
+    where
+        A: Array<Item = Self::Item>;
 }
 
 /// Extension for maybe uninitialized slices (`[MaybeUninit<_>]`)
@@ -141,6 +191,14 @@ impl<T> Slice for [T] {
         A::Item: Clone,
     {
         A::clone_from_slice(self)
+    }
+
+    #[inline]
+    fn array_windows<A>(&self) -> ArrayWindows<A>
+    where
+        A: Array<Item = Self::Item>,
+    {
+        ArrayWindows::new(self)
     }
 }
 
