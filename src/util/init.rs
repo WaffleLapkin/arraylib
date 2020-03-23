@@ -12,10 +12,10 @@
 use core::{
     convert::Infallible,
     mem::{self, MaybeUninit},
-    ptr, slice,
+    ptr,
 };
 
-use crate::{Array, ArrayShorthand};
+use crate::{Array, ArrayShorthand, MaybeUninitSlice};
 
 #[inline]
 pub(crate) fn array_init_fn<Arr, F>(mut init: F) -> Arr
@@ -67,22 +67,14 @@ where
     // It's better to use `Try` here, instead of `Result` but it's unstable
     F: FnMut(&mut St) -> Result<Arr::Item, E>,
 {
+    let mut array = Arr::uninit();
+    let mut state = init;
+
     if !mem::needs_drop::<Arr::Item>() {
-        let mut array = Arr::uninit();
-
-        unsafe {
-            let mut state = init;
-            for i in 0..Arr::SIZE {
-                // If `init` panics/fails nothing really happen: panic/fail just go up
-                // (Item doesn't need drop, so there are no leaks and everything is ok')
-                let elem = f(&mut state)?;
-                *array.index_mut(i) = MaybeUninit::new(elem);
-            }
-
-            // ## Safety
-            //
-            // We already initialized all elements of the array
-            Ok(Arr::assume_init(array))
+        for hole in array.iter_mut() {
+            // If `init` panics/fails nothing really happen: panic/fail just go up
+            // (Item doesn't need drop, so there are no leaks and everything is ok')
+            *hole = MaybeUninit::new(f(&mut state)?)
         }
     } else {
         // Item needs drop, so things came up a bit tricky
@@ -92,70 +84,64 @@ where
         ///
         /// This struct is private to this function, because of the unsafe code
         /// in it's `Drop` impl, which is sound only if:
-        /// - `array_base_ptr` is a pointer to the first element of an alive
-        ///   array
-        /// - all elements of `array[.. initialized_count]` (where `array` is
-        ///   the array `array_base_ptr` is pointing to) are initialized...
+        /// - all elements of `self.arr[..self.initialized]` are initialized...
+        /// - elements behind `arr` slice aren't used after `DropGuard` is
+        ///   dropped
         /// - ...so it must be sound to drop these elements using
         ///   `ptr::drop_in_place`
-        struct DropGuard<Item> {
-            // *mut because we need to mutate array, while holding it in guard
-            // (it's used only in drop, so hopefully it's ok)
-            array_base_ptr: *mut Item,
-            initialized_count: usize,
+        struct DropGuard<'a, Item> {
+            arr: &'a mut [MaybeUninit<Item>],
+            initialized: usize,
         }
 
-        impl<Item> Drop for DropGuard<Item> {
+        impl<Item> Drop for DropGuard<'_, Item> {
             fn drop(&mut self) {
                 // ## Safety
                 //
                 // The contract of the struct guarantees that this is sound
                 unsafe {
-                    let slice =
-                        slice::from_raw_parts_mut(self.array_base_ptr, self.initialized_count);
+                    let inited: &mut [Item] = self.arr[..self.initialized].assume_init_mut();
 
-                    ptr::drop_in_place(slice);
+                    // drop initialized elements
+                    ptr::drop_in_place(inited);
                 }
             }
         }
 
-        // If the `init(i)?` call panics or fails, `panic_guard` is dropped,
-        // dropping `array[.. initialized_count]` => no memory leak!
+        // If the `f(&mut state)?` call panics or fails, `guard` is dropped,
+        // thus dropping `array[..initialized]` => no memory leak!
         //
         // ## Safety
         //
-        // By construction, array[.. initialized_count] only contains
+        // By construction, `array[..initialized]` only contains
         // init elements, thus there is no risk of dropping uninit data.
-        unsafe {
-            let mut array = Arr::uninit();
-            let array_base_ptr = array.as_mut_slice().as_mut_ptr() as *mut Arr::Item;
-            let mut panic_guard = DropGuard {
-                array_base_ptr,
-                initialized_count: 0,
-            };
+        let mut guard = DropGuard {
+            arr: array.as_mut_slice(),
+            initialized: 0,
+        };
 
-            let mut state = init;
-            for i in 0..Arr::SIZE {
-                // Invariant: `i` elements have already been initialized
-                panic_guard.initialized_count = i;
-                // If this panics or fails, `panic_guard` is dropped, thus
-                // dropping the elements in `array_base_ptr[.. i]`
-                let value = f(&mut state)?;
-                // We can't use
-                // `*array.index_mut(i) = MaybeUninit::new(value);`
-                // here because of miri (see https://github.com/WaffleLapkin/arraylib/issues/5)
-                array_base_ptr.add(i).write(value)
-            }
-
-            // Next line return array from function, so if `panic_guard` will be
-            // dropped it could cause "use after free".
-            mem::forget(panic_guard);
-
-            // ## Safety
-            //
-            // We already initialized all elements of the array
-            Ok(Arr::assume_init(array))
+        // We need `guard` to hold unique reference to the `array`,
+        // so we can't access `array` directly
+        for (i, hole) in guard.arr.iter_mut().enumerate() {
+            // Invariant: `i` elements have already been initialized
+            guard.initialized = i;
+            // If `f(&mut state)?` panics or fails, `guard` is dropped, thus
+            // dropping the elements in `array[..i]`
+            *hole = MaybeUninit::new(f(&mut state)?);
         }
+
+        // Next lines return array from the function, so if `panic_guard` will be
+        // dropped it could cause "use after free".
+        mem::forget(guard);
+    }
+
+    // don't be fooled by this unsafe{} block, all the magic is in the previous
+    // if/else.
+    unsafe {
+        // ## Safety
+        //
+        // We already initialized all elements of the array
+        Ok(Arr::assume_init(array))
     }
 }
 
