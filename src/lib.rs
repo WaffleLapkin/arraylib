@@ -110,6 +110,13 @@
 #![deny(missing_docs)]
 // And I like inline
 #![warn(clippy::missing_inline_in_public_items)]
+// we pass "--cfg docsrs" when building docs to add `This is supported on feature="..." only.`
+//
+// To properly build docs of this crate run
+// ```console
+// $ RUSTDOCFLAGS="--cfg docsrs" cargo doc --open --features "alloc nightly"
+// ```
+#![cfg_attr(docsrs, feature(doc_cfg))]
 
 #[cfg(feature = "alloc")]
 extern crate alloc;

@@ -324,6 +324,7 @@ pub unsafe trait Array: Sized {
     /// Converts `self` into `Box<[Self::Item]>`
     #[inline]
     #[cfg(feature = "alloc")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
     fn into_boxed_slice(self) -> alloc::boxed::Box<[Self::Item]> {
         // This `unimplemented!` is done to allow other crates to not implement this fn
         // and not worrying that the will stop working when end-user would
