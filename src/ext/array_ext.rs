@@ -157,6 +157,7 @@ pub trait ArrayExt: Array {
         ///
         /// See also: [`[T]::to_vec`](https://doc.rust-lang.org/std/primitive.slice.html#method.to_vec)
         #[inline]
+        #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
         fn to_vec(&self) -> alloc::vec::Vec<Self::Item>
         where
             Self::Item: Clone,
@@ -183,6 +184,7 @@ pub trait ArrayExt: Array {
         ///
         /// See also: [`[T]::in to_vec`](https://doc.rust-lang.org/std/primitive.slice.html#method.into_vec)
         #[inline]
+        #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
         fn into_vec(self) -> alloc::vec::Vec<Self::Item> {
             self.into_boxed_slice().into_vec()
         }
