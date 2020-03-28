@@ -178,3 +178,44 @@ mod ext {
 #[cfg_attr(feature = "nightly", doc(include = "../README.md"))]
 #[cfg(doctest)]
 pub struct ReadmeDocTests;
+
+
+/// Conditional compilation depending on whether `arraylib` is built with `alloc` feature.
+///
+/// This macro is needed if you want to implement `Array` on your type (change your mind, you fool)
+/// which requires `into_boxed_slice` method, but only if `alloc` feature is enabled.
+///
+/// When `arraylib` is built with `alloc` feature, this macro expands
+/// transparently into just the input tokens.
+///
+/// ```
+/// macro_rules! if_alloc {
+///     ($($tt:tt)*) => {
+///         $($tt)*
+///     };
+/// }
+/// ```
+///
+/// When built without `alloc` feature, this macro expands to
+/// nothing.
+///
+/// ```
+/// macro_rules! if_alloc {
+///     ($($tt:tt)*) => {};
+/// }
+/// ```
+// idea is copy-pasted from serde (https://docs.serde.rs/serde/macro.serde_if_integer128.html)
+#[cfg(feature = "alloc")]
+#[macro_export]
+macro_rules! if_alloc {
+    ($($tt:tt)*) => {
+        $($tt)*
+    };
+}
+
+#[cfg(not(feature = "alloc"))]
+#[doc(hidden)]
+#[macro_export]
+macro_rules! if_alloc {
+    ($($tt:tt)*) => {};
+}

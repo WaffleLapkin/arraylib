@@ -518,6 +518,13 @@ where
             array: self.array.into_uninit(),
         }
     }
+
+    crate::if_alloc! {
+        #[inline]
+        fn into_boxed_slice(self) -> alloc::boxed::Box<[Self::Item]> {
+            self.array.into_boxed_slice()
+        }
+    }
 }
 
 impl<A, Idx> Index<Idx> for ArrayWrapper<A>
