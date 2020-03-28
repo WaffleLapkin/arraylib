@@ -505,11 +505,11 @@ where
     }
 
     #[inline]
-    fn from_iter<I>(iter: I) -> Option<Self>
+    fn try_from_iter<I>(iter: I) -> Option<Self>
     where
         I: IntoIterator<Item = Self::Item>,
     {
-        A::from_iter(iter.into_iter()).map(|array| Self { array })
+        A::try_from_iter(iter.into_iter()).map(|array| Self { array })
     }
 
     #[inline]

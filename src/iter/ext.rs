@@ -77,7 +77,7 @@ pub trait IteratorExt: Iterator {
     ///
     /// ## Panics
     ///
-    /// If there are less elements than size of the array:
+    /// If there are not enough elements to fill the array:
     ///
     /// ```should_panic
     /// use arraylib::iter::IteratorExt;
@@ -91,7 +91,39 @@ pub trait IteratorExt: Iterator {
         A: Array<Item = Self::Item>,
     {
         A::from_iter(self)
-            .expect("There wasn't enough elements for collecting into array of that size")
+    }
+
+    /// Transforms an iterator into an array.
+    ///
+    /// `collect_array()` can take anything iterable, and turn it into an array
+    /// of relevant size.
+    ///
+    /// This method returns `None` if there are not enough elements to fill the
+    /// array.
+    ///
+    /// See also: [`Iterator::collect`](core::iter::Iterator::collect)
+    ///
+    /// ## Example
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// use arraylib::iter::IteratorExt;
+    ///
+    /// let a = [1, 2, 3];
+    /// let doubled = a.iter().map(|&x| x * 2).try_collect_array();
+    ///
+    /// assert_eq!(doubled, Some([2, 4, 6]));
+    ///
+    /// assert_eq!([1, 2, 3].iter().try_collect_array::<[_; 16]>(), None)
+    /// ```
+    #[inline]
+    fn try_collect_array<A>(self) -> Option<A>
+    where
+        Self: Sized,
+        A: Array<Item = Self::Item>,
+    {
+        A::try_from_iter(self)
     }
 }
 

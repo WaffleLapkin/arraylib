@@ -212,7 +212,7 @@ pub trait ArrayExt: Array {
         Self::Item: Copy,
     {
         if slice.len() == Self::SIZE {
-            Ok(Self::from_iter(slice.iter().copied()).unwrap())
+            Ok(Self::try_from_iter(slice.iter().copied()).unwrap())
         } else {
             Err(SizeError::default())
         }
@@ -241,7 +241,7 @@ pub trait ArrayExt: Array {
         Self::Item: Clone,
     {
         if slice.len() == Self::SIZE {
-            Ok(Self::from_iter(slice.iter().cloned()).unwrap())
+            Ok(Self::try_from_iter(slice.iter().cloned()).unwrap())
         } else {
             Err(SizeError::default())
         }

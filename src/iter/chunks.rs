@@ -29,7 +29,7 @@ where
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        A::from_iter(self.iter.by_ref())
+        A::try_from_iter(self.iter.by_ref())
     }
 
     #[inline]
@@ -46,7 +46,7 @@ where
 {
     #[inline]
     fn next_back(&mut self) -> Option<Self::Item> {
-        A::from_iter(self.iter.by_ref().rev())
+        A::try_from_iter(self.iter.by_ref().rev())
     }
 }
 
