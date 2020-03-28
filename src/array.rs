@@ -322,50 +322,8 @@ pub unsafe trait Array: Sized {
     }
 
     /// Converts `self` into `Box<[Self::Item]>`
-    #[inline]
     #[cfg(feature = "alloc")]
-    fn into_boxed_slice(self) -> alloc::boxed::Box<[Self::Item]> {
-        // This `unimplemented!` is done to allow other crates to not implement this fn
-        // and not worrying that the will stop working when end-user would
-        // require to turn off or on alloc feature of this crate.
-        //
-        // ## Example of the problem:
-        //
-        // Imagine dep tree like this:
-        // ```text
-        //         [arraylib]
-        //        /          \
-        // [lib#1]           |
-        //    |           [lib#3]
-        // [lib#2]       /
-        //        \     /
-        //         [bin]
-        // ```
-        // There are 2 bad scenarios:
-        // 1:
-        // - lib#1 implements Array for own type without `into_boxed_slice`
-        // - lib#3 uses `alloc` feature of arraylib
-        // - bin can be compiled because lib#1 doesn't implement required method
-        //
-        // 2:
-        // - lib#1 implements Array for own type with `into_boxed_slice`
-        // - bin can be compiled without `alloc` because `lib#1` require `alloc` feature
-        //   of arraylib
-        //
-        // There are 3 ways to solve this problems:
-        // 1:
-        // Add trait `AllocExt` with `into_boxed_slice`
-        //   bad: you need to add bound in generic methods which require allocation
-        //
-        // 2 (currently implemented):
-        // Add default implementation to `into_boxed_slice` with `unimplemented!`
-        //   bad: this can potentially lead to runtime panics
-        //
-        // 3:
-        // Make `Array` sealed, so no crate will be able to implement it
-        //   bad: other crates won't be able to implement `Array` on their types
-        unimplemented!()
-    }
+    fn into_boxed_slice(self) -> alloc::boxed::Box<[Self::Item]>;
 }
 
 unsafe impl<T> Array for [T; 0] {
