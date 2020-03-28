@@ -323,6 +323,7 @@ pub unsafe trait Array: Sized {
 
     /// Converts `self` into `Box<[Self::Item]>`
     #[cfg(feature = "alloc")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
     fn into_boxed_slice(self) -> alloc::boxed::Box<[Self::Item]>;
 }
 
