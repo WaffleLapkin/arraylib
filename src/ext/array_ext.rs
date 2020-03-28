@@ -137,55 +137,55 @@ pub trait ArrayExt: Array {
         }
     }
 
-    /// Copies `self` into a new `Vec`.
-    ///
-    /// ## Examples
-    ///
-    /// ```
-    /// use arraylib::{Array, ArrayExt};
-    ///
-    /// fn generic<A>(arr: A)
-    /// where
-    ///     A: Array,
-    ///     A::Item: Clone,
-    /// {
-    ///     let x = arr.to_vec();
-    ///     // Here, `arr` and `x` can be modified independently.
-    /// }
-    /// ```
-    ///
-    /// See also: [`[T]::to_vec`](https://doc.rust-lang.org/std/primitive.slice.html#method.to_vec)
-    #[cfg(feature = "alloc")]
-    #[inline]
-    fn to_vec(&self) -> alloc::vec::Vec<Self::Item>
-    where
-        Self::Item: Clone,
-    {
-        self.as_slice().to_vec()
-    }
+    crate::if_alloc! {
+        /// Copies `self` into a new `Vec`.
+        ///
+        /// ## Examples
+        ///
+        /// ```
+        /// use arraylib::{Array, ArrayExt};
+        ///
+        /// fn generic<A>(arr: A)
+        /// where
+        ///     A: Array,
+        ///     A::Item: Clone,
+        /// {
+        ///     let x = arr.to_vec();
+        ///     // Here, `arr` and `x` can be modified independently.
+        /// }
+        /// ```
+        ///
+        /// See also: [`[T]::to_vec`](https://doc.rust-lang.org/std/primitive.slice.html#method.to_vec)
+        #[inline]
+        fn to_vec(&self) -> alloc::vec::Vec<Self::Item>
+        where
+            Self::Item: Clone,
+        {
+            self.as_slice().to_vec()
+        }
 
-    /// Converts `self` into a vector without clones.
-    ///
-    /// The resulting vector can be converted back into a box via
-    /// `Vec<T>`'s `into_boxed_slice` method.
-    ///
-    /// ## Examples
-    ///
-    /// ```
-    /// use arraylib::ArrayExt;
-    ///
-    /// let s = [10, 40, 30];
-    /// let x = s.into_vec();
-    /// // `s` cannot be used anymore because it has been converted into `x`.
-    ///
-    /// assert_eq!(x, vec![10, 40, 30]);
-    /// ```
-    ///
-    /// See also: [`[T]::in to_vec`](https://doc.rust-lang.org/std/primitive.slice.html#method.into_vec)
-    #[cfg(feature = "alloc")]
-    #[inline]
-    fn into_vec(self) -> alloc::vec::Vec<Self::Item> {
-        self.into_boxed_slice().into_vec()
+        /// Converts `self` into a vector without clones.
+        ///
+        /// The resulting vector can be converted back into a box via
+        /// `Vec<T>`'s `into_boxed_slice` method.
+        ///
+        /// ## Examples
+        ///
+        /// ```
+        /// use arraylib::ArrayExt;
+        ///
+        /// let s = [10, 40, 30];
+        /// let x = s.into_vec();
+        /// // `s` cannot be used anymore because it has been converted into `x`.
+        ///
+        /// assert_eq!(x, vec![10, 40, 30]);
+        /// ```
+        ///
+        /// See also: [`[T]::in to_vec`](https://doc.rust-lang.org/std/primitive.slice.html#method.into_vec)
+        #[inline]
+        fn into_vec(self) -> alloc::vec::Vec<Self::Item> {
+            self.into_boxed_slice().into_vec()
+        }
     }
 
     /// Create array from slice. Return `Err(())` if `slice.len != Self::SIZE`.

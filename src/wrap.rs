@@ -454,6 +454,13 @@ where
 
     const SIZE: usize = A::SIZE;
 
+    crate::if_alloc! {
+        #[inline]
+        fn into_boxed_slice(self) -> alloc::boxed::Box<[Self::Item]> {
+            self.array.into_boxed_slice()
+        }
+    }
+
     #[inline]
     fn as_slice(&self) -> &[Self::Item] {
         self.array.as_slice()
