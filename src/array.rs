@@ -346,6 +346,13 @@ unsafe impl<T> Array for [T; 0] {
 
     const SIZE: usize = 0;
 
+    crate::if_alloc! {
+        #[inline]
+        fn into_boxed_slice(self) -> alloc::boxed::Box<[Self::Item]> {
+            alloc::boxed::Box::new(self) as _
+        }
+    }
+
     #[inline]
     fn as_slice(&self) -> &[T] {
         &[]
@@ -399,13 +406,6 @@ unsafe impl<T> Array for [T; 0] {
     #[inline]
     fn into_uninit(self) -> Self::Maybe {
         []
-    }
-
-    crate::if_alloc! {
-        #[inline]
-        fn into_boxed_slice(self) -> alloc::boxed::Box<[Self::Item]> {
-            alloc::boxed::Box::new(self) as _
-        }
     }
 }
 

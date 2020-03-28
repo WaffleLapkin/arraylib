@@ -179,11 +179,12 @@ mod ext {
 #[cfg(doctest)]
 pub struct ReadmeDocTests;
 
-
-/// Conditional compilation depending on whether `arraylib` is built with `alloc` feature.
+/// Conditional compilation depending on whether `arraylib` is built with
+/// `alloc` feature.
 ///
-/// This macro is needed if you want to implement `Array` on your type (change your mind, you fool)
-/// which requires `into_boxed_slice` method, but only if `alloc` feature is enabled.
+/// This macro is needed if you want to implement `Array` on your type (change
+/// your mind, you fool) which requires `into_boxed_slice` method, but only if
+/// `alloc` feature is enabled.
 ///
 /// When `arraylib` is built with `alloc` feature, this macro expands
 /// transparently into just the input tokens.
