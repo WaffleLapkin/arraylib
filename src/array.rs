@@ -150,6 +150,28 @@ pub unsafe trait Array: Sized {
 
     /// Creates an array from an iterator.
     ///
+    /// This method returns `None` if there are not enough elements to fill the
+    /// array.
+    ///
+    /// ## Examples
+    ///
+    /// ```
+    /// use arraylib::{Array, ArrayExt};
+    /// use std::iter::once;
+    ///
+    /// let iter = [-2, -1, 0, 1, 2].iter_move().filter(|it| it % 2 == 0);
+    /// let arr = <[i32; 2]>::try_from_iter(iter);
+    /// assert_eq!(arr, Some([-2, 0]));
+    ///
+    /// let arr = <[i32; 2]>::try_from_iter(once(0));
+    /// assert_eq!(arr, None);
+    /// ```
+    fn try_from_iter<I>(iter: I) -> Option<Self>
+    where
+        I: IntoIterator<Item = Self::Item>;
+
+    /// Creates an array from an iterator.
+    ///
     /// ## Examples
     ///
     /// ```
@@ -158,21 +180,27 @@ pub unsafe trait Array: Sized {
     /// let iter = [-2, -1, 0, 1, 2].iter_move().filter(|it| it % 2 == 0);
     /// let arr = <[i32; 2]>::from_iter(iter);
     ///
-    /// assert_eq!(arr, Some([-2, 0]));
-    /// //                    ^^^^^---- Note: `2` wasn't consumed
+    /// assert_eq!(arr, [-2, 0]);
     /// ```
     ///
-    /// ```
+    /// ## Panics
+    ///
+    /// If there are not enough elements to fill the array:
+    ///
+    /// ```should_panic
     /// use arraylib::Array;
     /// use std::iter::once;
     ///
-    /// let arr = <[i32; 2]>::from_iter(once(0));
-    ///
-    /// assert_eq!(arr, None);
+    /// let _ = <[i32; 2]>::from_iter(once(0));
     /// ```
-    fn from_iter<I>(iter: I) -> Option<Self>
+    #[inline]
+    fn from_iter<I>(iter: I) -> Self
     where
-        I: IntoIterator<Item = Self::Item>;
+        I: IntoIterator<Item = Self::Item>,
+    {
+        Self::try_from_iter(iter)
+            .expect("there weren't enough elements to fill an array of that size")
+    }
 
     /// Converts self into `[MaybeUninit<Self::Item>; Self::Size]`. This
     /// function is used internally in this crate for some unsafe code.
@@ -389,7 +417,7 @@ unsafe impl<T> Array for [T; 0] {
     }
 
     #[inline]
-    fn from_iter<I>(_iter: I) -> Option<Self>
+    fn try_from_iter<I>(_iter: I) -> Option<Self>
     where
         I: IntoIterator<Item = Self::Item>,
     {
@@ -482,7 +510,7 @@ macro_rules! array_impl {
             }
 
             #[inline]
-            fn from_iter<I>(iter: I) -> Option<Self>
+            fn try_from_iter<I>(iter: I) -> Option<Self>
             where
                 I: IntoIterator<Item = Self::Item>
             {
