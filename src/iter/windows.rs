@@ -110,7 +110,7 @@ where
 {
     #[inline]
     fn len(&self) -> usize {
-        (self.slice.len() + 1).checked_sub(A::SIZE).unwrap_or(0)
+        (self.slice.len() + 1).saturating_sub(A::SIZE)
     }
 
     #[inline]

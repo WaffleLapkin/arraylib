@@ -67,9 +67,9 @@ pub trait Slice {
         A: Array<Item = Self::Item>,
         A::Item: Clone;
 
-    /// Returns an iterator over all contiguous windows of type `A` (length `A::SIZE`).
-    /// The windows overlap. If the slice is shorter than size (`A::SIZE`), the iterator returns
-    /// `None`.
+    /// Returns an iterator over all contiguous windows of type `A` (length
+    /// `A::SIZE`). The windows overlap. If the slice is shorter than size
+    /// (`A::SIZE`), the iterator returns `None`.
     ///
     /// ## Panics
     ///
@@ -87,8 +87,8 @@ pub trait Slice {
     /// assert_eq!(iter.next(), None);
     /// ```
     ///
-    /// In difference with [`<[T]>::windows`], this method returns iterator that returns _arrays_,
-    /// so you can use array destruction:
+    /// In difference with [`<[T]>::windows`], this method returns iterator that
+    /// returns _arrays_, so you can use array destruction:
     ///
     /// [`<[T]>::windows`]: https://doc.rust-lang.org/std/primitive.slice.html#method.windows
     ///
