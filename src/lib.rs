@@ -149,11 +149,14 @@ pub use self::{
 
 /// Iterator related things
 pub mod iter {
-    pub use self::{chunks::ArrayChunks, ext::IteratorExt, iter_move::IterMove};
+    pub use self::{
+        chunks::ArrayChunks, ext::IteratorExt, iter_move::IterMove, windows::ArrayWindows,
+    };
 
     mod chunks;
     mod ext;
     mod iter_move;
+    mod windows;
 }
 
 // === private but reexported ===
