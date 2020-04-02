@@ -97,7 +97,7 @@ pub trait Slice {
     ///
     /// assert_eq!(
     ///     [1, 2, 3, 4, 5]
-    ///         .array_windows::<[_; 3]>()
+    ///         .array_windows::<[u32; 3]>()
     ///         .map(|[a, b, c]| a + b + c)
     ///         .sum::<u32>(),
     ///     27
