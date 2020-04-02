@@ -11,6 +11,7 @@ jobs:
           - stable
           - beta
           - nightly
+          - miri
       
     steps:
       - uses: actions/checkout@v1
@@ -29,7 +30,16 @@ jobs:
           profile: minimal
           toolchain: ${{ matrix.rust }}
           override: true
-          components: rustfmt, clippy, miri
+          components: rustfmt, clippy
+
+
+      - uses: actions-rs/toolchain@v1
+        if: matrix.rust == 'miri'
+        with:
+          profile: minimal
+          toolchain: nightly
+          override: true
+          components: miri
 
       - name: stable/beta build 
         uses: actions-rs/cargo@v1
@@ -83,14 +93,14 @@ jobs:
 
       - name: miri setup
         uses: actions-rs/cargo@v1
-        if: matrix.rust == 'nightly'
+        if: matrix.rust == 'miri'
         with:
           command: miri
           args: setup
 
       - name: miri test
         uses: actions-rs/cargo@v1
-        if: matrix.rust == 'nightly'
+        if: matrix.rust == 'miri'
         with:
           command: miri
           args: test
