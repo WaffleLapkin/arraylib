@@ -123,7 +123,7 @@ pub trait ArrayExt: Array {
     /// }
     /// ```
     #[inline]
-    fn into_array<A>(self) -> Result<A, SizeError<Self>>
+    fn into_array<A>(self) -> Result<A, Self>
     where
         A: Array<Item = Self::Item>,
     {
@@ -133,7 +133,7 @@ pub trait ArrayExt: Array {
             // Item types and sizes are same for both `Self` and `A`, so it's the same type.
             Ok(unsafe { extremely_unsafe_transmute::<Self, A>(self) })
         } else {
-            Err(SizeError(self))
+            Err(self)
         }
     }
 
@@ -325,18 +325,15 @@ pub trait ArrayExt: Array {
     ///
     /// let vec = vec![1, 0, 2, 14];
     /// assert_eq!(<[i32; 4]>::try_ref_cast(&vec[..]), Ok(&[1, 0, 2, 14]));
-    /// assert_eq!(
-    ///     <[i32; 4]>::try_ref_cast(&vec[1..=2]),
-    ///     Err(SizeError(&[0, 2][..]))
-    /// );
+    /// assert_eq!(<[i32; 4]>::try_ref_cast(&vec[1..=2]), Err(&[0, 2][..]));
     /// ```
     #[inline]
-    fn try_ref_cast(slice: &[Self::Item]) -> Result<&Self, SizeError<&[Self::Item]>> {
+    fn try_ref_cast(slice: &[Self::Item]) -> Result<&Self, &[Self::Item]> {
         unsafe {
             if slice.len() >= Self::SIZE {
                 Ok(Self::ref_cast_unchecked(slice))
             } else {
-                Err(SizeError(slice))
+                Err(slice)
             }
         }
     }
@@ -360,16 +357,16 @@ pub trait ArrayExt: Array {
     /// );
     /// assert_eq!(
     ///     <[i32; 4]>::try_mut_cast(&mut vec[1..=2]),
-    ///     Err(SizeError(&mut [0, 2][..]))
+    ///     Err(&mut [0, 2][..])
     /// );
     /// ```
     #[inline]
-    fn try_mut_cast(slice: &mut [Self::Item]) -> Result<&mut Self, SizeError<&mut [Self::Item]>> {
+    fn try_mut_cast(slice: &mut [Self::Item]) -> Result<&mut Self, &mut [Self::Item]> {
         unsafe {
             if slice.len() >= Self::SIZE {
                 Ok(Self::mut_cast_unchecked(slice))
             } else {
-                Err(SizeError(slice))
+                Err(slice)
             }
         }
     }

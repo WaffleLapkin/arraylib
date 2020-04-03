@@ -243,7 +243,7 @@ impl<'a, A> TryFrom<&'a [A::Item]> for &'a ArrayWrapper<A>
 where
     A: Array,
 {
-    type Error = SizeError<&'a [A::Item]>;
+    type Error = &'a [A::Item];
 
     #[inline]
     fn try_from(slice: &'a [A::Item]) -> Result<Self, Self::Error> {
@@ -269,7 +269,7 @@ impl<'a, A> TryFrom<&'a mut [A::Item]> for &'a mut ArrayWrapper<A>
 where
     A: Array,
 {
-    type Error = SizeError<&'a mut [A::Item]>;
+    type Error = &'a mut [A::Item];
 
     #[inline]
     fn try_from(slice: &'a mut [A::Item]) -> Result<Self, Self::Error> {

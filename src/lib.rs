@@ -137,7 +137,6 @@ pub(crate) mod util {
 
 pub use self::{
     array::Array,
-    error::SizeError,
     ext::{
         array_ext::ArrayExt,
         shorthand::ArrayShorthand,
@@ -161,7 +160,6 @@ pub mod iter {
 
 // === private but reexported ===
 mod array;
-mod error;
 mod wrap;
 
 /// Array transformers like map (`[T; N]` -> `[U; N]`)
@@ -188,6 +186,17 @@ mod ext {
 #[cfg_attr(feature = "nightly", doc(include = "../README.md"))]
 #[cfg(doctest)]
 pub struct ReadmeDocTests;
+
+/// Error that is caused by wrong sizes of slices/arrays
+#[derive(Debug, PartialEq, Eq, Copy, Clone, Default)]
+pub struct SizeError(());
+
+impl core::fmt::Display for SizeError {
+    #[inline]
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> Result<(), core::fmt::Error> {
+        f.write_str("wrong size")
+    }
+}
 
 /// Conditional compilation depending on whether `arraylib` is built with
 /// `alloc` feature.
