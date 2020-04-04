@@ -10,7 +10,7 @@
 
 ```toml
 [dependencies]
-arraylib = "0.1"
+arraylib = "0.2"
 ```
 
 _Compiler support: requires rustc 1.41+_
