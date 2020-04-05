@@ -164,12 +164,6 @@ pub trait MaybeUninitSlice:
     /// [inv]: core::mem#initialization-invariant
     /// [`MaybeUninit::assume_init`]: core::mem::MaybeUninit::assume_init
     unsafe fn assume_init_mut(&mut self) -> &mut [Self::InitItem];
-
-    /// Create self from initialized slice
-    fn from_init(init: &[Self::InitItem]) -> &Self;
-
-    /// Create self from initialized slice
-    fn from_init_mut(init: &mut [Self::InitItem]) -> &mut Self;
 }
 
 impl<T> Slice for [T] {
@@ -222,23 +216,5 @@ impl<T> MaybeUninitSlice for [MaybeUninit<T>] {
         // Behavior is undefined if any of `MaybeUninit`s in `self` is in the
         // `uninit` state
         &mut *(self as *mut [MaybeUninit<T>] as *mut [T])
-    }
-
-    #[inline]
-    fn from_init(init: &[Self::InitItem]) -> &Self {
-        // ## Safety
-        //
-        // `MaybeUninit<T>` is guaranteed to have the same ABI as `T`, so
-        // it's safe to cast `&[T]` to `&[MaybeUninit<T>]`
-        unsafe { &*(init as *const [T] as *const [MaybeUninit<T>]) }
-    }
-
-    #[inline]
-    fn from_init_mut(init: &mut [Self::InitItem]) -> &mut Self {
-        // ## Safety
-        //
-        // `MaybeUninit<T>` is guaranteed to have the same ABI as `T`, so
-        // it's safe to cast `&mut [T]` to `&mut [MaybeUninit<T>]`
-        unsafe { &mut *(init as *mut [T] as *mut [MaybeUninit<T>]) }
     }
 }
