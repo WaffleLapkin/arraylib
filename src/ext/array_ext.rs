@@ -182,7 +182,7 @@ pub trait ArrayExt: Array {
         /// assert_eq!(x, vec![10, 40, 30]);
         /// ```
         ///
-        /// See also: [`[T]::in to_vec`](https://doc.rust-lang.org/std/primitive.slice.html#method.into_vec)
+        /// See also: [`[T]::into_vec`](https://doc.rust-lang.org/std/primitive.slice.html#method.into_vec)
         #[inline]
         #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
         fn into_vec(self) -> alloc::vec::Vec<Self::Item> {
