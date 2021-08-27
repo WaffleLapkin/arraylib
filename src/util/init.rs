@@ -10,7 +10,6 @@
 //! [`from_fn`]: crate::Array::from_fn
 //! [`from_iter`]: crate::Array::from_iter
 use core::{
-    convert::Infallible,
     mem::{self, MaybeUninit},
     ptr,
 };
@@ -18,59 +17,15 @@ use core::{
 use crate::{Array, ArrayShorthand, MaybeUninitSlice};
 
 #[inline]
-pub(crate) fn array_init_fn<Arr, F>(mut init: F) -> Arr
+pub(crate) fn try_unfold_array<T, St, F, E, const N: usize>(init: St, mut f: F) -> Result<[T; N], E>
 where
-    Arr: Array,
-    Arr::Item: Sized,
-    F: FnMut(usize) -> Arr::Item,
-{
-    try_array_init_fn(|i| Ok::<_, Infallible>(init(i))).unwrap_or_else(|inf| match inf {})
-}
-
-#[inline]
-pub(crate) fn array_init_iter<Arr, I>(mut iter: I) -> Option<Arr>
-where
-    Arr: Array,
-    Arr::Item: Sized,
-    I: Iterator<Item = Arr::Item>,
-{
-    try_unfold_array((), |_| iter.next().ok_or(())).ok()
-}
-
-#[inline]
-pub(crate) fn try_array_init_fn<Arr, Err, F>(mut f: F) -> Result<Arr, Err>
-where
-    Arr: Array,
-    Arr::Item: Sized,
-    F: FnMut(usize) -> Result<Arr::Item, Err>,
-{
-    try_unfold_array(0usize, |state| {
-        let item = f(*state);
-        *state += 1;
-        item
-    })
-}
-
-#[inline]
-pub(crate) fn unfold_array<Arr, St, F>(init: St, mut f: F) -> Arr
-where
-    Arr: Array,
-    F: FnMut(&mut St) -> Arr::Item,
-{
-    try_unfold_array(init, |state| Ok::<_, Infallible>(f(state))).unwrap_or_else(|inf| match inf {})
-}
-
-#[inline]
-pub(crate) fn try_unfold_array<Arr, St, F, E>(init: St, mut f: F) -> Result<Arr, E>
-where
-    Arr: Array,
     // It's better to use `Try` here, instead of `Result` but it's unstable
-    F: FnMut(&mut St) -> Result<Arr::Item, E>,
+    F: FnMut(&mut St) -> Result<T, E>,
 {
-    let mut array = Arr::uninit();
+    let mut array: [MaybeUninit<T>; N] = <[T; N]>::uninit();
     let mut state = init;
 
-    if !mem::needs_drop::<Arr::Item>() {
+    if !mem::needs_drop::<T>() {
         for hole in array.iter_mut() {
             // If `init` panics/fails nothing really happen: panic/fail just go up
             // (Item doesn't need drop, so there are no leaks and everything is ok')
@@ -89,18 +44,23 @@ where
         ///   dropped
         /// - ...so it must be sound to drop these elements using
         ///   `ptr::drop_in_place`
-        struct DropGuard<'a, Item> {
-            arr: &'a mut [MaybeUninit<Item>],
+        struct DropGuard<'a, T, const N: usize> {
+            arr: &'a mut [MaybeUninit<T>; N],
             initialized: usize,
         }
 
-        impl<Item> Drop for DropGuard<'_, Item> {
+        impl<T, const N: usize> Drop for DropGuard<'_, T, N> {
             fn drop(&mut self) {
+                debug_assert!(self.initialized <= N);
+
                 // ## Safety
                 //
                 // The contract of the struct guarantees that this is sound
                 unsafe {
-                    let inited: &mut [Item] = self.arr[..self.initialized].assume_init_mut();
+                    let inited: &mut [T] = self
+                        .arr
+                        .get_unchecked_mut(..self.initialized)
+                        .assume_init_mut();
 
                     // drop initialized elements
                     ptr::drop_in_place(inited);
@@ -116,7 +76,7 @@ where
         // By construction, `array[..initialized]` only contains
         // init elements, thus there is no risk of dropping uninit data.
         let mut guard = DropGuard {
-            arr: array.as_mut_slice(),
+            arr: &mut array,
             initialized: 0,
         };
 
@@ -141,7 +101,7 @@ where
         // ## Safety
         //
         // We already initialized all elements of the array
-        Ok(Arr::assume_init(array))
+        Ok(<[T; N]>::assume_init(array))
     }
 }
 
@@ -153,8 +113,7 @@ mod tests {
     use core::convert::TryFrom;
     use std::sync::Mutex;
 
-    use super::{array_init_fn, try_array_init_fn};
-    use crate::util::init::array_init_iter;
+    use crate::Array;
 
     /// Add `1` to mutex on drop
     #[derive(Debug)]
@@ -169,7 +128,7 @@ mod tests {
 
     #[test]
     fn copy() {
-        let arr: [i32; 32] = super::try_array_init_fn(i32::try_from).unwrap();
+        let arr: [i32; 32] = Array::try_from_fn(i32::try_from).unwrap();
 
         assert_eq!(
             arr,
@@ -188,7 +147,7 @@ mod tests {
             fn drop(&mut self) {}
         }
 
-        let _: [HasDrop; 16] = array_init_fn(|_| HasDrop);
+        let _: [HasDrop; 16] = Array::from_fn(|_| HasDrop);
     }
 
     #[test]
@@ -196,7 +155,7 @@ mod tests {
         let counter = Mutex::new(0);
 
         let r = std::panic::catch_unwind(|| {
-            let _: [DropCount; 16] = array_init_fn(|i| {
+            let _: [DropCount; 16] = Array::from_fn(|i| {
                 if i == 10 {
                     panic!()
                 } else {
@@ -213,7 +172,7 @@ mod tests {
     fn drop_on_fail() {
         let counter = Mutex::new(0);
 
-        let r: Result<[DropCount; 16], ()> = try_array_init_fn(|i| {
+        let r: Result<[DropCount; 16], ()> = Array::try_from_fn(|i| {
             if i == 10 {
                 Err(())
             } else {
@@ -227,18 +186,18 @@ mod tests {
 
     #[test]
     fn zst() {
-        let _: [(); 65536] = array_init_fn(|_| ());
+        let _: [(); 65536] = Array::from_fn(|_| ());
     }
 
     #[test]
     fn the_biggest() {
-        let _: [usize; 16384] = array_init_fn(|i| i);
+        let _: [usize; 16384] = Array::from_fn(|i| i);
     }
 
     #[test]
     fn iter_equal_len() {
         let mut vec = vec![0, 1, 2, 3, 4];
-        let arr: [i32; 5] = array_init_iter(vec.drain(..)).unwrap();
+        let arr: [i32; 5] = Array::from_iter(vec.drain(..)).unwrap();
 
         assert_eq!(arr, [0, 1, 2, 3, 4]);
     }
@@ -246,7 +205,7 @@ mod tests {
     #[test]
     fn iter_greater_len() {
         let mut vec = vec![0, 1, 2, 3, 4, 5, 6, 7, 8];
-        let arr: [i32; 5] = array_init_iter(vec.drain(..)).unwrap();
+        let arr: [i32; 5] = Array::from_iter(vec.drain(..)).unwrap();
 
         assert_eq!(arr, [0, 1, 2, 3, 4]);
     }
@@ -254,7 +213,7 @@ mod tests {
     #[test]
     fn iter_less_len() {
         let mut vec = vec![0, 1, 2];
-        let arr: Option<[i32; 5]> = array_init_iter(vec.drain(..));
+        let arr: Option<[i32; 5]> = Array::from_iter(vec.drain(..));
 
         assert_eq!(arr, None);
     }

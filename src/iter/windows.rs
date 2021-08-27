@@ -1,6 +1,6 @@
 use core::fmt;
 
-use crate::{Array, ArrayExt};
+use crate::ArrayExt;
 
 // TODO: check that panicking refcast/index optimizes in a good way
 
@@ -11,30 +11,24 @@ use crate::{Array, ArrayExt};
 ///
 /// [`array_windows`]: crate::Slice::array_windows
 /// [slices]: https://doc.rust-lang.org/std/primitive.slice.html
-pub struct ArrayWindows<'a, A: Array> {
-    slice: &'a [A::Item],
+pub struct ArrayWindows<'a, T, const N: usize> {
+    slice: &'a [T],
 }
 
-impl<'a, A> ArrayWindows<'a, A>
-where
-    A: Array,
-{
-    pub(crate) fn new(slice: &'a [A::Item]) -> Self {
-        assert!(A::SIZE > 0);
+impl<'a, T, const N: usize> ArrayWindows<'a, T, N> {
+    pub(crate) fn new(slice: &'a [T]) -> Self {
+        assert!(N > 0);
         Self { slice }
     }
 }
 
-impl<'a, A> Iterator for ArrayWindows<'a, A>
-where
-    A: Array + 'a,
-{
-    type Item = &'a A;
+impl<'a, T: 'a, const N: usize> Iterator for ArrayWindows<'a, T, N> {
+    type Item = &'a [T; N];
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        if self.slice.len() >= A::SIZE {
-            let r = A::ref_cast(&self.slice[..A::SIZE]);
+        if self.slice.len() >= N {
+            let r = ArrayExt::ref_cast(&self.slice[..N]);
             self.slice = &self.slice[1..];
             Some(r)
         } else {
@@ -54,8 +48,8 @@ where
 
     #[inline]
     fn last(self) -> Option<Self::Item> {
-        if self.slice.len() > A::SIZE {
-            Some(A::ref_cast(&self.slice[self.slice.len() - A::SIZE..]))
+        if self.slice.len() > N {
+            Some(ArrayExt::ref_cast(&self.slice[self.slice.len() - N..]))
         } else {
             None
         }
@@ -63,26 +57,23 @@ where
 
     #[inline]
     fn nth(&mut self, n: usize) -> Option<Self::Item> {
-        let (end, overflow) = A::SIZE.overflowing_add(n);
+        let (end, overflow) = N.overflowing_add(n);
         if end > self.slice.len() || overflow {
             self.slice = &[];
             None
         } else {
-            let nth = A::ref_cast(&self.slice[n..end]);
+            let nth = ArrayExt::ref_cast(&self.slice[n..end]);
             self.slice = &self.slice[n + 1..];
             Some(nth)
         }
     }
 }
 
-impl<'a, A> DoubleEndedIterator for ArrayWindows<'a, A>
-where
-    A: Array + 'a,
-{
+impl<'a, T, const N: usize> DoubleEndedIterator for ArrayWindows<'a, T, N> {
     #[inline]
     fn next_back(&mut self) -> Option<Self::Item> {
-        if self.slice.len() >= A::SIZE {
-            let r = A::ref_cast(&self.slice[self.slice.len() - A::SIZE..]);
+        if self.slice.len() >= N {
+            let r = ArrayExt::ref_cast(&self.slice[self.slice.len() - N..]);
             self.slice = &self.slice[..self.slice.len() - 1];
             Some(r)
         } else {
@@ -93,43 +84,39 @@ where
     #[inline]
     fn nth_back(&mut self, n: usize) -> Option<Self::Item> {
         let (end, overflow) = self.slice.len().overflowing_sub(n);
-        if end < A::SIZE || overflow {
+        if end < N || overflow {
             self.slice = &[];
             None
         } else {
-            let ret = A::ref_cast(&self.slice[end - A::SIZE..end]);
+            let ret = ArrayExt::ref_cast(&self.slice[end - N..end]);
             self.slice = &self.slice[..end - 1];
             Some(ret)
         }
     }
 }
 
-impl<'a, A> ExactSizeIterator for ArrayWindows<'a, A>
-where
-    A: Array + 'a,
-{
+impl<'a, T, const N: usize> ExactSizeIterator for ArrayWindows<'a, T, N> {
     #[inline]
     fn len(&self) -> usize {
-        (self.slice.len() + 1).saturating_sub(A::SIZE)
+        (self.slice.len() + 1).saturating_sub(N)
     }
 
     #[inline]
     #[cfg(feature = "nightly")]
     fn is_empty(&self) -> bool {
-        self.slice.len() < A::SIZE
+        self.slice.len() < N
     }
 }
 
-impl<'a, A> fmt::Debug for ArrayWindows<'a, A>
+impl<'a, T, const N: usize> fmt::Debug for ArrayWindows<'a, T, N>
 where
-    A: Array,
-    A::Item: fmt::Debug,
+    T: fmt::Debug,
 {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("ArrayWindows")
             .field("slice", &self.slice)
-            .field("window_len", &A::SIZE)
+            .field("window_len", &N)
             .finish()
     }
 }
@@ -140,7 +127,7 @@ mod tests {
 
     #[test]
     fn basic_usage() {
-        let mut iter = [0, 1, 2, 3].array_windows::<[_; 2]>();
+        let mut iter = [0, 1, 2, 3].array_windows_::<2>();
 
         assert_eq!(iter.next(), Some(&[0, 1]));
         assert_eq!(iter.next(), Some(&[1, 2]));
@@ -150,7 +137,7 @@ mod tests {
 
     #[test]
     fn back() {
-        let mut iter = [0, 1, 2, 3].array_windows::<[_; 2]>().rev();
+        let mut iter = [0, 1, 2, 3].array_windows_::<2>().rev();
 
         assert_eq!(iter.next(), Some(&[2, 3]));
         assert_eq!(iter.next(), Some(&[1, 2]));
@@ -161,7 +148,7 @@ mod tests {
     #[test]
     fn destruct() {
         let res = [1, 2, 3]
-            .array_windows::<[_; 2]>()
+            .array_windows_::<2>()
             .fold(0, |i, [a, b]| i + (a * b));
 
         assert_eq!(res, 8)
@@ -169,7 +156,7 @@ mod tests {
 
     #[test]
     fn nth() {
-        let mut iter = [0, 1, 2, 3, 4, 5].array_windows::<[_; 2]>();
+        let mut iter = [0, 1, 2, 3, 4, 5].array_windows_::<2>();
 
         assert_eq!(iter.nth(3), Some(&[3, 4]));
         assert_eq!(iter.next(), Some(&[4, 5]));
@@ -178,7 +165,7 @@ mod tests {
 
     #[test]
     fn nth_back() {
-        let mut iter = [0, 1, 2, 3, 4, 5].array_windows::<[_; 2]>();
+        let mut iter = [0, 1, 2, 3, 4, 5].array_windows_::<2>();
 
         assert_eq!(iter.nth_back(3), Some(&[1, 2]));
         assert_eq!(iter.next(), Some(&[0, 1]));
@@ -187,7 +174,7 @@ mod tests {
 
     #[test]
     fn len() {
-        let mut iter = [0, 1, 2, 3, 4, 5].array_windows::<[_; 2]>();
+        let mut iter = [0, 1, 2, 3, 4, 5].array_windows_::<2>();
         assert_eq!(iter.len(), 5);
         iter.next();
         iter.next_back();

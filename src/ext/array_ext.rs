@@ -1,17 +1,7 @@
-use crate::{
-    iter::IterMove, util::transmute::extremely_unsafe_transmute, Array, ArrayWrapper, SizeError,
-};
+use crate::{util::transmute::extremely_unsafe_transmute, Array, SizeError};
 
 /// Extension on arrays that provide additional functions.
-pub trait ArrayExt: Array {
-    /// Creates iterator which moves elements out of array.
-    ///
-    /// See also: [IterMove](crate::iter::IterMove)
-    #[inline]
-    fn iter_move(self) -> IterMove<Self> {
-        IterMove::new(self)
-    }
-
+pub trait ArrayExt<const N: usize>: Array<N> {
     /// ## Example
     /// ```
     /// use arraylib::ArrayExt;
@@ -30,17 +20,10 @@ pub trait ArrayExt: Array {
     /// let arr: [_; 4] = [1, 2, 3].concat_arr([4, 5, 6]);
     /// ```
     #[inline]
-    fn concat_arr<A, R>(self, other: A) -> R
-    where
-        A: Array<Item = Self::Item>,
-        R: Array<Item = Self::Item>,
-    {
+    fn concat_arr<const M: usize, const R: usize>(self, other: [Self::Item; M]) -> [Self::Item; R] {
         unsafe {
-            // Because of lack of const generics we need to assert this in runtime :(
-            //
-            // It's also possible to add trait like `ArrayConcat<A> { type Output }` but
-            // this leads to A LOT of impls and SLOW compile times.
-            assert_eq!(Self::SIZE + A::SIZE, R::SIZE);
+            // Because of lack of const generics we need to assert this at runtime :(
+            assert_eq!(N + M, R);
 
             #[repr(C, packed)]
             struct Both<Slf, A>(Slf, A);
@@ -55,7 +38,7 @@ pub trait ArrayExt: Array {
             // `#[repr(C, packed)]`), we know that `Both<Self, A>` is equal to `R`, so we
             // can safely transmute one into another.
             let both = Both(self, other);
-            extremely_unsafe_transmute::<Both<Self, A>, R>(both)
+            extremely_unsafe_transmute::<Both<Self, [Self::Item; M]>, [Self::Item; R]>(both)
         }
     }
 
@@ -66,23 +49,16 @@ pub trait ArrayExt: Array {
     /// use arraylib::ArrayExt;
     ///
     /// let arr = [1, 2, 3, 4, 5];
-    /// let (head, tail) = arr.split_arr::<[_; 2], [_; 3]>();
+    /// let (head, tail) = arr.split_arr::<2, 3>();
     ///
     /// assert_eq!(head, [1, 2]);
     /// assert_eq!(tail, [3, 4, 5]);
     /// ```
     #[inline]
-    fn split_arr<A, B>(self) -> (A, B)
-    where
-        A: Array<Item = Self::Item>,
-        B: Array<Item = Self::Item>,
-    {
+    fn split_arr<const L: usize, const R: usize>(self) -> ([Self::Item; L], [Self::Item; R]) {
         unsafe {
             // Because of lack of const generics we need to assert this in runtime :(
-            //
-            // It's also possible to add trait like `ArraySplit<A, B> { ... }` but this
-            // leads to A LOT of impls and SLOW compile times.
-            assert_eq!(Self::SIZE, A::SIZE + B::SIZE);
+            assert_eq!(N, L + R);
 
             #[repr(C, packed)]
             struct Both<A, B>(A, B);
@@ -96,44 +72,10 @@ pub trait ArrayExt: Array {
             // Because of fact that all types are arrays (and fact that `Both` is
             // `#[repr(C, packed)]`), we know that `Both<Self, A>` is equal to `R`, so we
             // can safely transmute one into another.
-            let Both(a, b): Both<A, B> = extremely_unsafe_transmute::<Self, Both<A, B>>(self);
-            (a, b)
-        }
-    }
+            let Both(a, b): Both<[Self::Item; L], [Self::Item; R]> =
+                extremely_unsafe_transmute::<Self, Both<[Self::Item; L], [Self::Item; R]>>(self);
 
-    /// Converts `self` into an array. This function will return `Some(_)` if
-    /// sizes of `Self` and `A` are the same and `None` otherwise.
-    ///
-    /// ## Example
-    /// ```
-    /// use arraylib::{Array, ArrayExt};
-    ///
-    /// fn function_optimized_for_8(_: [i32; 8]) {
-    ///     /* ... */
-    /// }
-    ///
-    /// fn general<A>(array: A)
-    /// where
-    ///     A: Array<Item = i32>,
-    /// {
-    ///     match array.into_array::<[i32; 8]>() {
-    ///         Ok(array) => function_optimized_for_8(array),
-    ///         Err(array) => { /* here `array` is of type `A` */ },
-    ///     }
-    /// }
-    /// ```
-    #[inline]
-    fn into_array<A>(self) -> Result<A, Self>
-    where
-        A: Array<Item = Self::Item>,
-    {
-        if Self::SIZE == A::SIZE {
-            // ## Safety
-            //
-            // Item types and sizes are same for both `Self` and `A`, so it's the same type.
-            Ok(unsafe { extremely_unsafe_transmute::<Self, A>(self) })
-        } else {
-            Err(self)
+            (a, b)
         }
     }
 
@@ -143,16 +85,10 @@ pub trait ArrayExt: Array {
         /// ## Examples
         ///
         /// ```
-        /// use arraylib::{Array, ArrayExt};
+        /// use arraylib::Array;
         ///
-        /// fn generic<A>(arr: A)
-        /// where
-        ///     A: Array,
-        ///     A::Item: Clone,
-        /// {
-        ///     let x = arr.to_vec();
-        ///     // Here, `arr` and `x` can be modified independently.
-        /// }
+        /// let arr = [1, 2, 3];
+        /// assert_eq!(arr.to_vec(), vec![1, 2, 3])
         /// ```
         ///
         /// See also: [`[T]::to_vec`](https://doc.rust-lang.org/std/primitive.slice.html#method.to_vec)
@@ -213,8 +149,8 @@ pub trait ArrayExt: Array {
     where
         Self::Item: Copy,
     {
-        if slice.len() == Self::SIZE {
-            Ok(Self::try_from_iter(slice.iter().copied()).unwrap())
+        if slice.len() == N {
+            Ok(Self::from_iter(slice.iter().copied()).unwrap())
         } else {
             Err(SizeError::default())
         }
@@ -242,17 +178,11 @@ pub trait ArrayExt: Array {
     where
         Self::Item: Clone,
     {
-        if slice.len() == Self::SIZE {
-            Ok(Self::try_from_iter(slice.iter().cloned()).unwrap())
+        if slice.len() == N {
+            Ok(Self::from_iter(slice.iter().cloned()).unwrap())
         } else {
             Err(SizeError::default())
         }
-    }
-
-    /// Wrap `self` into [`ArrayWrapper`](crate::ArrayWrapper)
-    #[inline]
-    fn wrap(self) -> ArrayWrapper<Self> {
-        ArrayWrapper::new(self)
     }
 
     /// Safely cast `&[T]` to `&Self` (`[T; N]`)
@@ -330,7 +260,7 @@ pub trait ArrayExt: Array {
     #[inline]
     fn try_ref_cast(slice: &[Self::Item]) -> Result<&Self, &[Self::Item]> {
         unsafe {
-            if slice.len() >= Self::SIZE {
+            if slice.len() >= N {
                 Ok(Self::ref_cast_unchecked(slice))
             } else {
                 Err(slice)
@@ -363,7 +293,7 @@ pub trait ArrayExt: Array {
     #[inline]
     fn try_mut_cast(slice: &mut [Self::Item]) -> Result<&mut Self, &mut [Self::Item]> {
         unsafe {
-            if slice.len() >= Self::SIZE {
+            if slice.len() >= N {
                 Ok(Self::mut_cast_unchecked(slice))
             } else {
                 Err(slice)
@@ -460,7 +390,7 @@ pub trait ArrayExt: Array {
     }
 }
 
-impl<A> ArrayExt for A where A: Array {}
+impl<A, const N: usize> ArrayExt<N> for A where A: Array<N> {}
 
 // This is a separate function to reduce the code size of ref_cast/mut_cast
 // functions.

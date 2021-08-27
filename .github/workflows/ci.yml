@@ -96,7 +96,6 @@ jobs:
           command: clippy
           args: --all-targets --all-features -- -D warnings
 
-
       - name: miri setup
         uses: actions-rs/cargo@v1
         if: matrix.rust == 'miri'

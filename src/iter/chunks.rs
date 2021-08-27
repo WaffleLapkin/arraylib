@@ -6,13 +6,15 @@ use crate::Array;
 /// Created by [`IteratorExt::array_chunks`][method] method,
 ///
 /// [method]: crate::iter::IteratorExt::array_chunks
-pub struct ArrayChunks<I, A> {
+pub struct ArrayChunks<I, T, const N: usize> {
     iter: I,
-    marker: PhantomData<A>,
+    marker: PhantomData<[T; N]>,
 }
 
-impl<I, A> ArrayChunks<I, A> {
+impl<I, T, const N: usize> ArrayChunks<I, T, N> {
     pub(crate) fn new(iter: I) -> Self {
+        assert!(N > 0, "Size of chunks must be greater that zero");
+
         Self {
             iter,
             marker: PhantomData,
@@ -20,70 +22,57 @@ impl<I, A> ArrayChunks<I, A> {
     }
 }
 
-impl<I, A> Iterator for ArrayChunks<I, A>
+impl<I, T, const N: usize> Iterator for ArrayChunks<I, T, N>
 where
-    I: Iterator,
-    A: Array<Item = I::Item>,
+    I: Iterator<Item = T>,
 {
-    type Item = A;
+    type Item = [T; N];
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        A::try_from_iter(self.iter.by_ref())
+        Array::from_iter(self.iter.by_ref())
     }
 
     #[inline]
     fn size_hint(&self) -> (usize, Option<usize>) {
         let (down, upper) = self.iter.size_hint();
-        (down / A::SIZE, upper.map(|it| it / A::SIZE))
+        (down / N, upper.map(|it| it / N))
     }
 }
 
-impl<I, A> DoubleEndedIterator for ArrayChunks<I, A>
+impl<I, T, const N: usize> ExactSizeIterator for ArrayChunks<I, T, N>
 where
-    I: DoubleEndedIterator,
-    A: Array<Item = I::Item>,
-{
-    #[inline]
-    fn next_back(&mut self) -> Option<Self::Item> {
-        A::try_from_iter(self.iter.by_ref().rev())
-    }
-}
-
-impl<I, A> ExactSizeIterator for ArrayChunks<I, A>
-where
-    I: ExactSizeIterator,
-    A: Array<Item = I::Item>,
+    I: ExactSizeIterator<Item = T>,
 {
     #[inline]
     fn len(&self) -> usize {
-        self.iter.len() / A::SIZE
+        self.iter.len() / N
     }
 
     #[inline]
     #[cfg(feature = "nightly")]
     fn is_empty(&self) -> bool {
-        self.iter.len() < A::SIZE
+        self.iter.len() < N
     }
 }
 
-impl<I: fmt::Debug, A: Array> fmt::Debug for ArrayChunks<I, A> {
+impl<I: fmt::Debug, T, const N: usize> fmt::Debug for ArrayChunks<I, T, N> {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Chunks")
+        f.debug_struct("ArrayChunks")
             .field("iter", &self.iter)
-            .field("chunk_len", &A::SIZE)
+            .field("chunk_len", &N)
             .finish()
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{iter::IteratorExt, ArrayExt};
+    use crate::{iter::IteratorExt, Array};
 
     #[test]
     fn basic_usage() {
-        let mut iter = [0, 1, 2, 3, 4].iter_move().array_chunks::<[_; 2]>();
+        let mut iter = [0, 1, 2, 3, 4].iter_move().array_chunks::<2>();
 
         assert_eq!(iter.next(), Some([0, 1]));
         assert_eq!(iter.next(), Some([2, 3]));
@@ -91,19 +80,10 @@ mod tests {
     }
 
     #[test]
-    fn back() {
-        let mut iter = [0, 1, 2, 3, 4].iter_move().array_chunks::<[_; 2]>().rev();
-
-        assert_eq!(iter.next(), Some([4, 3]));
-        assert_eq!(iter.next(), Some([2, 1]));
-        assert_eq!(iter.next(), None);
-    }
-
-    #[test]
     fn len() {
         macro_rules! assert_len {
             (size: $array_size:literal, chunk: $chunk_size:literal, expect: $expected:literal) => {
-                let array = [0; $array_size].iter_move().array_chunks::<[_; $chunk_size]>();
+                let array = [0; $array_size].iter_move().array_chunks::<$chunk_size>();
                 assert_eq!(array.len(), $expected);
             };
             (
