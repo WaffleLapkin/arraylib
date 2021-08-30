@@ -16,7 +16,7 @@
 //! ## Example
 //!
 //! ```
-//! use arraylib::{Array, ArrayExt, ArrayMap};
+//! use arraylib::{Array, ArrayExt};
 //!
 //! // Array creation
 //! let arr = <[_; 11]>::unfold(1, |it| {
@@ -26,7 +26,7 @@
 //! });
 //!
 //! // Mapping
-//! let arr = arr.map(|it| it * 2);
+//! let arr = arr.lift(|it| it * 2);
 //! assert_eq!(arr, [2, -4, 8, -16, 32, -64, 128, -256, 512, -1024, 2048]);
 //!
 //! // By-value iterator
@@ -104,8 +104,6 @@
 #![cfg_attr(not(test), no_std)]
 // Some sweaty nightly features
 #![cfg_attr(feature = "nightly", feature(trusted_len, exact_size_is_empty))]
-// For running tests from readme
-#![cfg_attr(all(doctest, feature = "nightly"), feature(external_doc))]
 // I hate missing docs
 #![deny(missing_docs)]
 // And I like inline
@@ -116,7 +114,7 @@
 // ```console
 // $ RUSTDOCFLAGS="--cfg docsrs" cargo doc --open --features "alloc nightly"
 // ```
-#![cfg_attr(docsrs, feature(doc_cfg))]
+#![cfg_attr(all(docsrs, feature = "nightly"), feature(doc_cfg))]
 
 #[cfg(feature = "alloc")]
 extern crate alloc;
@@ -124,10 +122,6 @@ extern crate alloc;
 /// Utils that help implementing public API
 #[macro_use]
 pub(crate) mod util {
-    #[macro_use]
-    /// Helper macros these are used in this lib
-    mod local_macros;
-
     /// Array initialization
     pub(crate) mod init;
 
@@ -142,35 +136,19 @@ pub use self::{
         shorthand::ArrayShorthand,
         slice_ext::{MaybeUninitSlice, Slice},
     },
-    transform::{as_ref::ArrayAsRef, map::ArrayMap},
-    wrap::ArrayWrapper,
 };
 
 /// Iterator related things
 pub mod iter {
-    pub use self::{
-        chunks::ArrayChunks, ext::IteratorExt, iter_move::IterMove, windows::ArrayWindows,
-    };
+    pub use self::{chunks::ArrayChunks, ext::IteratorExt, windows::ArrayWindows};
 
     mod chunks;
     mod ext;
-    mod iter_move;
     mod windows;
 }
 
 // === private but reexported ===
 mod array;
-mod wrap;
-
-/// Array transformers like map (`[T; N]` -> `[U; N]`)
-///
-/// Commonly just shortcuts for `.iter_move().*method*(...).collect_array()`
-mod transform {
-    /// `&(mut) [T; N]` -> `[&(mut) T; N]`
-    pub(super) mod as_ref;
-    /// `[T; N]` -> `[U; N]`
-    pub(super) mod map;
-}
 
 /// Different extension traits
 mod ext {
@@ -183,7 +161,7 @@ mod ext {
 }
 
 /// Run tests from readme
-#[cfg_attr(feature = "nightly", doc(include = "../README.md"))]
+#[cfg_attr(feature = "nightly", doc = include_str!("../README.md"))]
 #[cfg(doctest)]
 pub struct ReadmeDocTests;
 
