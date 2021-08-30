@@ -1,6 +1,6 @@
 use core::mem::MaybeUninit;
 
-use crate::{iter::ArrayWindows, ArrayExt, SizeError};
+use crate::{iter::ArrayWindows, Array, ArrayExt, SizeError};
 
 /// Extension for [`slice`]
 ///
@@ -31,12 +31,13 @@ pub trait Slice {
     /// use arraylib::{SizeError, Slice};
     ///
     /// let slice: &[i32] = &[0, 1, 2, 3, 4];
-    /// let result = slice.copied::<2>();
+    /// let result = slice.copied::<[i32; 2]>();
     /// assert_eq!(result, Err(SizeError::default()));
     /// ```
-    fn copied<const N: usize>(&self) -> Result<[Self::Item; N], SizeError>
+    fn copied<A>(&self) -> Result<A, SizeError>
     where
-        Self::Item: Copy;
+        A: Array<Item = Self::Item>,
+        A::Item: Copy;
 
     /// Clone `self` into an owned array.
     /// Return `Err(SizeError)` if len of `self` is not equal to `A::SIZE`.
@@ -58,12 +59,13 @@ pub trait Slice {
     /// use core::ops::Range;
     ///
     /// let slice: &[Range<usize>] = &[0..1, 1..3, 2..10];
-    /// let result = slice.cloned::<5>();
+    /// let result = slice.cloned::<[Range<usize>; 5]>();
     /// assert_eq!(result, Err(SizeError::default()));
     /// ```
-    fn cloned<const N: usize>(&self) -> Result<[Self::Item; N], SizeError>
+    fn cloned<A>(&self) -> Result<A, SizeError>
     where
-        Self::Item: Clone;
+        A: Array<Item = Self::Item>,
+        A::Item: Clone;
 
     /// Returns an iterator over all contiguous windows of type `A` (length
     /// `A::SIZE`). The windows overlap. If the slice is shorter than size
@@ -78,7 +80,7 @@ pub trait Slice {
     /// ```
     /// use arraylib::Slice;
     ///
-    /// let mut iter = [1, 2, 3, 4].array_windows_();
+    /// let mut iter = [1, 2, 3, 4].array_windows::<[_; 2]>();
     /// assert_eq!(iter.next(), Some(&[1, 2]));
     /// assert_eq!(iter.next(), Some(&[2, 3]));
     /// assert_eq!(iter.next(), Some(&[3, 4]));
@@ -95,7 +97,7 @@ pub trait Slice {
     ///
     /// assert_eq!(
     ///     [1, 2, 3, 4, 5]
-    ///         .array_windows_()
+    ///         .array_windows::<[u32; 3]>()
     ///         .map(|[a, b, c]| a + b + c)
     ///         .sum::<u32>(),
     ///     27
@@ -108,10 +110,12 @@ pub trait Slice {
     /// use arraylib::Slice;
     ///
     /// let slice = ['f', 'o', 'o'];
-    /// let mut iter = slice.array_windows_::<4>();
+    /// let mut iter = slice.array_windows::<[_; 4]>();
     /// assert!(iter.next().is_none());
     /// ```
-    fn array_windows_<const N: usize>(&self) -> ArrayWindows<Self::Item, N>;
+    fn array_windows<A>(&self) -> ArrayWindows<A>
+    where
+        A: Array<Item = Self::Item>;
 }
 
 /// Extension for maybe uninitialized slices (`[MaybeUninit<_>]`)
@@ -166,23 +170,28 @@ impl<T> Slice for [T] {
     type Item = T;
 
     #[inline]
-    fn copied<const N: usize>(&self) -> Result<[Self::Item; N], SizeError>
+    fn copied<A>(&self) -> Result<A, SizeError>
     where
-        Self::Item: Copy,
+        A: Array<Item = Self::Item>,
+        A::Item: Copy,
     {
-        ArrayExt::from_slice(self)
+        A::from_slice(self)
     }
 
     #[inline]
-    fn cloned<const N: usize>(&self) -> Result<[Self::Item; N], SizeError>
+    fn cloned<A>(&self) -> Result<A, SizeError>
     where
-        Self::Item: Clone,
+        A: Array<Item = Self::Item>,
+        A::Item: Clone,
     {
-        ArrayExt::clone_from_slice(self)
+        A::clone_from_slice(self)
     }
 
     #[inline]
-    fn array_windows_<const N: usize>(&self) -> ArrayWindows<Self::Item, N> {
+    fn array_windows<A>(&self) -> ArrayWindows<A>
+    where
+        A: Array<Item = Self::Item>,
+    {
         ArrayWindows::new(self)
     }
 }
