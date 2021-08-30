@@ -1,9 +1,6 @@
-use core::{convert::Infallible, hint::unreachable_unchecked, mem::MaybeUninit};
+use core::mem::MaybeUninit;
 
-use crate::{
-    iter::IteratorExt,
-    util::{init, transmute::extremely_unsafe_transmute},
-};
+use crate::util::transmute::extremely_unsafe_transmute;
 
 /// Represent array of _some_ size. E.g.: `[u8; 32]`, `[&str; 8]`, `[T; N]`.
 ///
@@ -23,11 +20,11 @@ use crate::{
 ///
 /// It is **highly not recommended** to implement this trait on your type unless
 /// you **really** know what you are doing.
-pub unsafe trait Array<const SIZE: usize>: Sized {
+pub unsafe trait Array: Sized {
     /// Type of the Items in the array. i.e.
     /// ```
     /// # use arraylib::Array; fn dummy<T>() where
-    /// [T; 4]: Array<4, Item = T>
+    /// [T; 4]: Array<Item = T>
     /// # {}
     /// ```
     type Item;
@@ -36,10 +33,22 @@ pub unsafe trait Array<const SIZE: usize>: Sized {
     /// [`MaybeUninit<_>`](core::mem::MaybeUninit).
     /// ```
     /// # use arraylib::Array; fn dummy<T>() where
-    /// [T; 4]: Array<4, Maybe = [core::mem::MaybeUninit<T>; 4]>
+    /// [T; 4]: Array<Item = T, Maybe = [core::mem::MaybeUninit<T>; 4]>
     /// # {}
     /// ```
-    type Maybe: Array<SIZE, Item = MaybeUninit<Self::Item>>;
+    type Maybe: Array<Item = MaybeUninit<Self::Item>>;
+
+    /// Size of the array.
+    ///
+    /// ## Example
+    ///
+    /// ```
+    /// use arraylib::Array;
+    ///
+    /// assert_eq!(<[(); 0]>::SIZE, 0);
+    /// assert_eq!(<[(); 2]>::SIZE, 2);
+    /// ```
+    const SIZE: usize;
 
     /// Extracts a slice containing the entire array.
     ///
@@ -65,66 +74,6 @@ pub unsafe trait Array<const SIZE: usize>: Sized {
     /// assert_eq!(array, [1, 2, 1]);
     /// ```
     fn as_mut_slice(&mut self) -> &mut [Self::Item];
-
-    /// Maps elements of the array
-    ///
-    /// ## Examples
-    /// ```
-    /// use arraylib::Array;
-    ///
-    /// let arr = [1, 2, 3, 4, 5];
-    /// let res = arr.lift(|x| 2i32.pow(x));
-    /// assert_eq!(res, [2, 4, 8, 16, 32])
-    /// ```
-    ///
-    /// **NOTE**: it's highly recommended to use iterators when you need to
-    /// perform more that one operation (e.g. map + as_ref) because iterators
-    /// are lazy and `ArrayMap` isn't.
-    fn lift<U, F>(self, f: F) -> [U; SIZE]
-    where
-        F: FnMut(Self::Item) -> U;
-
-    /// Convert `&self` to `[&T; N]` (where `T = Self::Item, N = Self::Size`)
-    ///
-    /// ## Examples
-    /// ```
-    /// use arraylib::Array;
-    ///
-    /// let arr = [0, 1, 2, 3];
-    /// let ref_arr = arr.as_refs();
-    /// assert_eq!(ref_arr, [&0, &1, &2, &3]);
-    /// assert_eq!(arr, [0, 1, 2, 3]);
-    /// ```
-    ///
-    /// **NOTE**: it's highly recommended to use iterators when you need to
-    /// perform more that one operation (e.g. map + as_ref) because iterators
-    /// are lazy and `ArrayAsRef` isn't.
-    ///
-    /// See also: [`as_mut_refs`](crate::ArrayAsRef::as_mut_refs)
-    fn as_refs(&self) -> [&Self::Item; SIZE];
-
-    /// Convert `&mut self` to `[&mut T; N]` (where `T = Self::Item, N =
-    /// Self::Size`)
-    ///
-    /// ## Examples
-    /// ```
-    /// use arraylib::Array;
-    ///
-    /// let mut arr = [0, 1, 2, 3];
-    /// let ref_arr = arr.as_mut_refs();
-    /// assert_eq!(ref_arr, [&mut 0, &mut 1, &mut 2, &mut 3]);
-    /// assert_eq!(arr, [0, 1, 2, 3]);
-    /// ```
-    ///
-    /// **NOTE**: it's highly recommended to use iterators when you need to
-    /// perform more that one operation (e.g. map + as_ref) because iterators
-    /// are lazy and `ArrayAsRef` isn't.
-    ///
-    /// See also: [`as_refs`](crate::Array::as_refs)
-    fn as_mut_refs(&mut self) -> [&mut Self::Item; SIZE];
-
-    ///
-    fn iter_move(self) -> core::array::IntoIter<Self::Item, SIZE>;
 
     /// Create new array, filled with elements returned by `f`. If `f` return
     /// `Err` then this method also return `Err`.
@@ -211,15 +160,47 @@ pub unsafe trait Array<const SIZE: usize>: Sized {
     /// use std::iter::once;
     ///
     /// let iter = [-2, -1, 0, 1, 2].iter_move().filter(|it| it % 2 == 0);
-    /// let arr = <[i32; 2]>::from_iter(iter);
+    /// let arr = <[i32; 2]>::try_from_iter(iter);
     /// assert_eq!(arr, Some([-2, 0]));
     ///
-    /// let arr = <[i32; 2]>::from_iter(once(0));
+    /// let arr = <[i32; 2]>::try_from_iter(once(0));
     /// assert_eq!(arr, None);
     /// ```
-    fn from_iter<I>(iter: I) -> Option<Self>
+    fn try_from_iter<I>(iter: I) -> Option<Self>
     where
         I: IntoIterator<Item = Self::Item>;
+
+    /// Creates an array from an iterator.
+    ///
+    /// ## Examples
+    ///
+    /// ```
+    /// use arraylib::{Array, ArrayExt};
+    ///
+    /// let iter = [-2, -1, 0, 1, 2].iter_move().filter(|it| it % 2 == 0);
+    /// let arr = <[i32; 2]>::from_iter(iter);
+    ///
+    /// assert_eq!(arr, [-2, 0]);
+    /// ```
+    ///
+    /// ## Panics
+    ///
+    /// If there are not enough elements to fill the array:
+    ///
+    /// ```should_panic
+    /// use arraylib::Array;
+    /// use std::iter::once;
+    ///
+    /// let _ = <[i32; 2]>::from_iter(once(0));
+    /// ```
+    #[inline]
+    fn from_iter<I>(iter: I) -> Self
+    where
+        I: IntoIterator<Item = Self::Item>,
+    {
+        Self::try_from_iter(iter)
+            .expect("there weren't enough elements to fill an array of that size")
+    }
 
     /// Converts self into `[MaybeUninit<Self::Item>; Self::Size]`. This
     /// function is used internally in this crate for some unsafe code.
@@ -346,9 +327,11 @@ pub unsafe trait Array<const SIZE: usize>: Sized {
     fn into_boxed_slice(self) -> alloc::boxed::Box<[Self::Item]>;
 }
 
-unsafe impl<T, const N: usize> Array<N> for [T; N] {
+unsafe impl<T> Array for [T; 0] {
     type Item = T;
-    type Maybe = [MaybeUninit<T>; N];
+    type Maybe = [MaybeUninit<T>; 0];
+
+    const SIZE: usize = 0;
 
     crate::if_alloc! {
         #[inline]
@@ -359,97 +342,161 @@ unsafe impl<T, const N: usize> Array<N> for [T; N] {
 
     #[inline]
     fn as_slice(&self) -> &[T] {
-        &self[..]
+        &[]
     }
 
     #[inline]
     fn as_mut_slice(&mut self) -> &mut [T] {
-        &mut self[..]
+        &mut []
     }
 
     #[inline]
-    fn lift<U, F>(self, f: F) -> [U; N]
-    where
-        F: FnMut(Self::Item) -> U,
-    {
-        match self.iter_move().map(f).collect_array() {
-            Some(ret) => ret,
-            None => unsafe {
-                debug_assert!(false);
-                unreachable_unchecked()
-            },
-        }
-    }
-
-    #[inline]
-    fn as_refs(&self) -> [&Self::Item; N] {
-        self.iter().collect_array().unwrap()
-    }
-
-    #[inline]
-    fn as_mut_refs(&mut self) -> [&mut Self::Item; N] {
-        self.iter_mut().collect_array().unwrap()
-    }
-
-    #[inline]
-    fn iter_move(self) -> core::array::IntoIter<Self::Item, N> {
-        <_>::into_iter(self)
-    }
-
-    #[inline]
-    fn try_unfold<St, F, E>(init: St, f: F) -> Result<Self, E>
+    fn try_unfold<St, F, E>(_init: St, _f: F) -> Result<Self, E>
     where
         F: FnMut(&mut St) -> Result<Self::Item, E>,
     {
-        init::try_unfold_array(init, f)
+        Ok([])
     }
 
     #[inline]
-    fn unfold<St, F>(init: St, mut f: F) -> Self
+    fn unfold<St, F>(_init: St, _f: F) -> Self
     where
         F: FnMut(&mut St) -> Self::Item,
     {
-        match init::try_unfold_array(init, |st| Ok::<_, Infallible>(f(st))) {
-            Ok(ret) => ret,
-            Err(inf) => match inf {},
-        }
+        []
     }
 
     #[inline]
-    fn try_from_fn<F, E>(mut f: F) -> Result<Self, E>
+    fn try_from_fn<F, E>(_f: F) -> Result<Self, E>
     where
         F: FnMut(usize) -> Result<Self::Item, E>,
     {
-        init::try_unfold_array(0, |i| {
-            let item = f(*i)?;
-            *i += 1;
-            Ok(item)
-        })
+        Ok([])
     }
 
     #[inline]
-    fn from_fn<F>(mut f: F) -> Self
+    fn from_fn<F>(_f: F) -> Self
     where
         F: FnMut(usize) -> Self::Item,
     {
-        let ret = init::try_unfold_array(0, |i| {
-            let item = f(*i);
-            *i += 1;
-            Ok::<_, Infallible>(item)
-        });
-
-        match ret {
-            Ok(ret) => ret,
-            Err(inf) => match inf {},
-        }
+        []
     }
 
     #[inline]
-    fn from_iter<I>(iter: I) -> Option<Self>
+    fn try_from_iter<I>(_iter: I) -> Option<Self>
     where
         I: IntoIterator<Item = Self::Item>,
     {
-        let mut iter = iter.into_iter();
-        init::try_unfold_array((), |&mut ()| iter.next().ok_or(())).ok()
+        Some([])
+    }
+
+    #[inline]
+    fn into_uninit(self) -> Self::Maybe {
+        []
     }
 }
+
+macro_rules! array_impl {
+    ($e:tt) => {
+        unsafe impl<T> Array for [T; $e] {
+            type Item = T;
+            type Maybe = [MaybeUninit<T>; $e];
+
+            const SIZE: usize = $e;
+
+            #[inline]
+            fn as_slice(&self) -> &[T] { &self[..] }
+
+            #[inline]
+            fn as_mut_slice(&mut self) -> &mut [T] { &mut self[..] }
+
+            #[inline]
+            #[allow(unused_mut)]
+            fn try_unfold<St, F, E>(mut init: St, mut f: F) -> Result<Self, E>
+            where
+                F: FnMut(&mut St) -> Result<Self::Item, E>
+            {
+                Ok(
+                    // this expands to
+                    // - `[f(&mut init)?, ..., f(&mut init)?]`, for arrays of sizes 1..=32
+                    // - `crate::init::unfold_array`, otherwise
+                    block_specialisation!(
+                        $e,
+                        { $crate::util::init::try_unfold_array(init, f)? },
+                        { f(&mut init)? }
+                    )
+                )
+            }
+
+            #[inline]
+            #[allow(unused_mut)]
+            fn unfold<St, F>(mut init: St, mut f: F) -> Self
+            where
+                F: FnMut(&mut St) -> Self::Item
+            {
+                // this expands to
+                // - `[f(&mut init), ..., f(&mut init)]`, for arrays of sizes 1..=32
+                // - `crate::init::unfold_array`, otherwise
+                block_specialisation!(
+                    $e,
+                    { $crate::util::init::unfold_array(init, f) },
+                    { f(&mut init) }
+                )
+            }
+
+            #[inline]
+            #[allow(unused_mut)]
+            fn try_from_fn<F, E>(mut f: F) -> Result<Self, E>
+            where
+                F: FnMut(usize) -> Result<Self::Item, E>
+            {
+                // this expands to
+                // - `[f(0)?, f(1)?, f(2)?, ..., f($e - 1)?]`, for arrays of sizes 1..=32
+                // - `crate::init::array_init_fn`, otherwise
+                Ok(try_from_fn_specialisation!($e, f))
+            }
+
+
+            #[inline]
+            #[allow(unused_mut)]
+            fn from_fn<F>(mut f: F) -> Self
+            where
+                F: FnMut(usize) -> Self::Item
+            {
+                // this expands to
+                // - `[f(0), f(1), f(2), ..., f($e - 1)]`, for arrays of sizes 1..=32
+                // - `crate::init::array_init_fn`, otherwise
+                from_fn_specialisation!($e, f)
+            }
+
+            #[inline]
+            fn try_from_iter<I>(iter: I) -> Option<Self>
+            where
+                I: IntoIterator<Item = Self::Item>
+            {
+                #[allow(unused_mut)]
+                let mut iter = iter.into_iter();
+
+                Some(
+                    // this expands to
+                    // - `[iter.next()?, ..., iter.next()?]`, for arrays of sizes 1..=32
+                    // - `crate::init::unfold_array`, otherwise
+                    block_specialisation!(
+                        $e,
+                        { $crate::util::init::array_init_iter(iter)? },
+                        { iter.next()? }
+                    )
+                )
+            }
+
+            $crate::if_alloc! {
+                #[inline]
+                fn into_boxed_slice(self) -> alloc::boxed::Box<[Self::Item]> {
+                    alloc::boxed::Box::new(self) as _
+                }
+            }
+        }
+    };
+}
+
+array_impls!(array_impl);

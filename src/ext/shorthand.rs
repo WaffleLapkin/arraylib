@@ -1,9 +1,60 @@
-use core::{mem, slice};
+use core::{mem, slice, slice::SliceIndex};
 
 use crate::Array;
 
 /// Shorthand methods those just refer to `self.as_slice().smt()`
-pub trait ArrayShorthand<const N: usize>: Array<N> {
+pub trait ArrayShorthand: Array {
+    /// Returns a reference to the value corresponding to the supplied index.
+    ///
+    /// ## Example
+    /// ```
+    /// use arraylib::{Array, ArrayShorthand};
+    ///
+    /// fn slice<A>(arr: &A) -> (&A::Item, &[A::Item])
+    /// where
+    ///     A: Array,
+    /// {
+    ///     (arr.index(0), arr.index(1..))
+    /// }
+    ///
+    /// assert_eq!(slice(&[1, 2, 3]), (&1, &[2, 3][..]))
+    /// ```
+    ///
+    /// See also: [`index_mut`](ArrayShorthand::index_mut)
+    #[inline]
+    fn index<Idx>(&self, idx: Idx) -> &Idx::Output
+    where
+        Idx: SliceIndex<[Self::Item]>,
+    {
+        &self.as_slice()[idx]
+    }
+
+    /// Returns a unique reference to the value corresponding to the supplied
+    /// index.
+    ///
+    /// ## Example
+    /// ```
+    /// use arraylib::{Array, ArrayShorthand};
+    ///
+    /// fn slice<A>(arr: &mut A) -> &mut [A::Item]
+    /// where
+    ///     A: Array,
+    /// {
+    ///     arr.index_mut(1..)
+    /// }
+    ///
+    /// assert_eq!(slice(&mut [1, 2, 3]), &mut [2, 3])
+    /// ```
+    ///
+    /// See also: [`index`](ArrayShorthand::index)
+    #[inline]
+    fn index_mut<Idx>(&mut self, idx: Idx) -> &mut Idx::Output
+    where
+        Idx: SliceIndex<[Self::Item]>,
+    {
+        &mut self.as_mut_slice()[idx]
+    }
+
     /// Replace element of the array
     ///
     /// ## Example
@@ -16,7 +67,7 @@ pub trait ArrayShorthand<const N: usize>: Array<N> {
     /// ```
     #[inline]
     fn replace(&mut self, idx: usize, item: Self::Item) -> Self::Item {
-        mem::replace(&mut self.as_mut_slice()[idx], item)
+        mem::replace(self.index_mut(idx), item)
     }
 
     /// Take element of the array, replacing it with default
@@ -76,4 +127,4 @@ pub trait ArrayShorthand<const N: usize>: Array<N> {
     }
 }
 
-impl<A, const N: usize> ArrayShorthand<N> for A where A: Array<N> {}
+impl<A> ArrayShorthand for A where A: Array {}
