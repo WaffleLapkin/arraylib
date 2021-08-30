@@ -1,6 +1,6 @@
 use core::fmt;
 
-use crate::ArrayExt;
+use crate::Array;
 
 // TODO: check that panicking refcast/index optimizes in a good way
 
@@ -9,7 +9,7 @@ use crate::ArrayExt;
 /// This struct is created by the [`array_windows`] method on [slices].
 /// See it's documentation for more.
 ///
-/// [`array_windows`]: crate::Slice::array_windows
+/// [`array_windows`]: crate::Slice::array_windows_
 /// [slices]: https://doc.rust-lang.org/std/primitive.slice.html
 pub struct ArrayWindows<'a, T, const N: usize> {
     slice: &'a [T],
@@ -28,7 +28,7 @@ impl<'a, T: 'a, const N: usize> Iterator for ArrayWindows<'a, T, N> {
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         if self.slice.len() >= N {
-            let r = ArrayExt::ref_cast(&self.slice[..N]);
+            let r = Array::ref_cast(&self.slice[..N]);
             self.slice = &self.slice[1..];
             Some(r)
         } else {
@@ -49,7 +49,7 @@ impl<'a, T: 'a, const N: usize> Iterator for ArrayWindows<'a, T, N> {
     #[inline]
     fn last(self) -> Option<Self::Item> {
         if self.slice.len() > N {
-            Some(ArrayExt::ref_cast(&self.slice[self.slice.len() - N..]))
+            Some(Array::ref_cast(&self.slice[self.slice.len() - N..]))
         } else {
             None
         }
@@ -62,7 +62,7 @@ impl<'a, T: 'a, const N: usize> Iterator for ArrayWindows<'a, T, N> {
             self.slice = &[];
             None
         } else {
-            let nth = ArrayExt::ref_cast(&self.slice[n..end]);
+            let nth = Array::ref_cast(&self.slice[n..end]);
             self.slice = &self.slice[n + 1..];
             Some(nth)
         }
@@ -73,7 +73,7 @@ impl<'a, T, const N: usize> DoubleEndedIterator for ArrayWindows<'a, T, N> {
     #[inline]
     fn next_back(&mut self) -> Option<Self::Item> {
         if self.slice.len() >= N {
-            let r = ArrayExt::ref_cast(&self.slice[self.slice.len() - N..]);
+            let r = Array::ref_cast(&self.slice[self.slice.len() - N..]);
             self.slice = &self.slice[..self.slice.len() - 1];
             Some(r)
         } else {
@@ -88,7 +88,7 @@ impl<'a, T, const N: usize> DoubleEndedIterator for ArrayWindows<'a, T, N> {
             self.slice = &[];
             None
         } else {
-            let ret = ArrayExt::ref_cast(&self.slice[end - N..end]);
+            let ret = Array::ref_cast(&self.slice[end - N..end]);
             self.slice = &self.slice[..end - 1];
             Some(ret)
         }

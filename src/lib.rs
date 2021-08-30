@@ -2,21 +2,17 @@
 //!   1) Abstraction over arrays (you can use [`Array`] trait as bound on
 //!      generics)
 //!   2) Creation of arrays (see [`Array`] trait)
-//!   3) Doing operations on arrays that produce arrays (see
-//!      [`ArrayMap`] and [`ArrayAsRef`] traits)
-//!   4) By-value iterating on array (see [`IterMove`])
-//!   5) `Iterator` adapter that yield fixed sized chunks of inner iterator
+//!   3) Doing operations on arrays that produce arrays
+//!   4) `Iterator` adapter that yield fixed sized chunks of inner iterator
 //!      (see [`ArrayChunks`])
 //!
 //! [`Array`]: crate::Array
-//! [`ArrayExt`]: crate::ArrayExt
-//! [`IterMove`]: crate::iter::IterMove
 //! [`ArrayChunks`]: crate::iter::ArrayChunks
 //!
 //! ## Example
 //!
 //! ```
-//! use arraylib::{Array, ArrayExt};
+//! use arraylib::Array;
 //!
 //! // Array creation
 //! let arr = <[_; 11]>::unfold(1, |it| {
@@ -79,7 +75,7 @@
 //!   and [`Array::from_iter`])
 //! - [`array_ext`](https://docs.rs/array_ext)
 //! - [`slice_as_array`](https://peterreid.github.io/slice_as_array/slice_as_array/index.html)
-//!   (analogs to [`ArrayExt::from_slice`] and [`Array::from_iter`])
+//!   (analogs to [`Array::from_slice`] and [`Array::from_iter`])
 //! - [`arraytools`](https://docs.rs/arraytools)
 //! - [`core::array::FixedSizeArray`](https://doc.rust-lang.org/beta/core/array/trait.FixedSizeArray.html)
 //! - [`stackvec`](https://docs.rs/stackvec/)
@@ -132,7 +128,6 @@ pub(crate) mod util {
 pub use self::{
     array::Array,
     ext::{
-        array_ext::ArrayExt,
         shorthand::ArrayShorthand,
         slice_ext::{MaybeUninitSlice, Slice},
     },
@@ -152,8 +147,6 @@ mod array;
 
 /// Different extension traits
 mod ext {
-    /// Array ext
-    pub(super) mod array_ext;
     /// Also array ext (but for `.as_slice().method()` -> `.method()` shortcuts)
     pub(super) mod shorthand;
     /// Slice ext
