@@ -1,6 +1,6 @@
 use core::mem::MaybeUninit;
 
-use crate::{iter::ArrayWindows, ArrayExt, SizeError};
+use crate::{iter::ArrayWindows, Array, SizeError};
 
 /// Extension for [`slice`]
 ///
@@ -85,10 +85,10 @@ pub trait Slice {
     /// assert_eq!(iter.next(), None);
     /// ```
     ///
-    /// In difference with [`<[T]>::windows`], this method returns iterator that
-    /// returns _arrays_, so you can use array destruction:
+    /// In difference with [`<[T]>::windows`][windows], this method returns
+    /// iterator that returns _arrays_, so you can use array destruction:
     ///
-    /// [`<[T]>::windows`]: https://doc.rust-lang.org/std/primitive.slice.html#method.windows
+    /// [windows]: https://doc.rust-lang.org/std/primitive.slice.html#method.windows
     ///
     /// ```
     /// use arraylib::Slice;
@@ -170,7 +170,7 @@ impl<T> Slice for [T] {
     where
         Self::Item: Copy,
     {
-        ArrayExt::from_slice(self)
+        Array::from_slice(self)
     }
 
     #[inline]
@@ -178,7 +178,7 @@ impl<T> Slice for [T] {
     where
         Self::Item: Clone,
     {
-        ArrayExt::clone_from_slice(self)
+        Array::clone_from_slice(self)
     }
 
     #[inline]

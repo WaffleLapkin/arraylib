@@ -18,7 +18,7 @@ _Compiler support: requires rustc 1.41+_
 ## Examples
 
 ```rust
-use arraylib::{Array, ArrayExt};
+use arraylib::Array;
 // Array creation
 let arr = <[_; 11]>::unfold(1, |it| {
     let res = *it;
