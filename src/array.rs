@@ -1,6 +1,7 @@
 use core::{convert::Infallible, hint::unreachable_unchecked, mem::MaybeUninit};
 
 use crate::{
+    continuous::Continuous,
     iter::IteratorExt,
     util::{init, transmute::extremely_unsafe_transmute},
     SizeError,
@@ -24,49 +25,10 @@ use crate::{
 ///
 /// It is **highly not recommended** to implement this trait on your type unless
 /// you **really** know what you are doing.
-pub unsafe trait Array<const N: usize>: Sized {
-    /// Type of the Items in the array. i.e.
-    /// ```
-    /// # use arraylib::Array; fn dummy<T>() where
-    /// [T; 4]: Array<4, Item = T>
-    /// # {}
-    /// ```
-    type Item;
-
-    /// Same array but item is wrapped with
-    /// [`MaybeUninit<_>`](core::mem::MaybeUninit).
-    /// ```
-    /// # use arraylib::Array; fn dummy<T>() where
-    /// [T; 4]: Array<4, Maybe = [core::mem::MaybeUninit<T>; 4]>
-    /// # {}
-    /// ```
-    type Maybe: Array<N, Item = MaybeUninit<Self::Item>>;
-
-    /// Extracts a slice containing the entire array.
-    ///
-    /// ## Example
-    ///
-    /// ```
-    /// use arraylib::Array;
-    ///
-    /// let array = [1, 2, 3];
-    /// assert_eq!(array.as_slice()[1..], [2, 3]);
-    /// ```
-    fn as_slice(&self) -> &[Self::Item];
-
-    /// Extracts a mutable slice of the entire array.
-    ///
-    /// ## Example
-    ///
-    /// ```
-    /// use arraylib::Array;
-    ///
-    /// let mut array = [1, 0, 1];
-    /// array.as_mut_slice()[1] = 2;
-    /// assert_eq!(array, [1, 2, 1]);
-    /// ```
-    fn as_mut_slice(&mut self) -> &mut [Self::Item];
-
+pub unsafe trait Array<const N: usize>: Sized + Continuous
+where
+    <Self as Continuous>::Uninit: Sized,
+{
     /// Maps elements of the array
     ///
     /// ## Examples
@@ -233,7 +195,7 @@ pub unsafe trait Array<const N: usize>: Sized {
     /// let _: [MaybeUninit<bool>; 3] = [true, false, false].into_uninit();
     /// ```
     #[inline]
-    fn into_uninit(self) -> Self::Maybe {
+    fn into_uninit(self) -> Self::Uninit {
         // Note: copy-pasted from https://doc.rust-lang.org/nightly/src/core/array/iter.rs.html
 
         // ## Safety
@@ -248,7 +210,7 @@ pub unsafe trait Array<const N: usize>: Sized {
         //
         // With that (and the guarantees of the array trait), this
         // initialization satisfies the invariants.
-        unsafe { extremely_unsafe_transmute::<Self, Self::Maybe>(self) }
+        unsafe { extremely_unsafe_transmute::<Self, Self::Uninit>(self) }
     }
 
     /// Creates uninitialized array of [`MaybeUninit<T>`].
@@ -268,7 +230,7 @@ pub unsafe trait Array<const N: usize>: Sized {
     // is an array of `MaybeUninit` that doesn't require initialization, so
     // everything is ok
     #[allow(clippy::uninit_assumed_init)]
-    fn uninit() -> Self::Maybe {
+    fn uninit() -> Self::Uninit {
         unsafe {
             // ## Safety
             //
@@ -326,7 +288,7 @@ pub unsafe trait Array<const N: usize>: Sized {
     /// // `arr[3]` had not been initialized yet, so this last line caused undefined behavior.
     /// ```
     #[inline]
-    unsafe fn assume_init(uninit: Self::Maybe) -> Self {
+    unsafe fn assume_init(uninit: Self::Uninit) -> Self {
         // # Unsafety
         //
         // Array trait guarantees that Self::Maybe is an array of the same size
@@ -338,7 +300,7 @@ pub unsafe trait Array<const N: usize>: Sized {
         // initialized state.
         //
         // So this is safe if all items in `uninit` array are initialized.
-        extremely_unsafe_transmute::<Self::Maybe, Self>(uninit)
+        extremely_unsafe_transmute::<Self::Uninit, Self>(uninit)
     }
 
     /// Converts `self` into `Box<[Self::Item]>`
@@ -424,27 +386,6 @@ pub unsafe trait Array<const N: usize>: Sized {
     }
 
     crate::if_alloc! {
-        /// Copies `self` into a new `Vec`.
-        ///
-        /// ## Examples
-        ///
-        /// ```
-        /// use arraylib::Array;
-        ///
-        /// let arr = [1, 2, 3];
-        /// assert_eq!(arr.to_vec(), vec![1, 2, 3])
-        /// ```
-        ///
-        /// See also: [`[T]::to_vec`](https://doc.rust-lang.org/std/primitive.slice.html#method.to_vec)
-        #[inline]
-        #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
-        fn to_vec(&self) -> alloc::vec::Vec<Self::Item>
-        where
-            Self::Item: Clone,
-        {
-            self.as_slice().to_vec()
-        }
-
         /// Converts `self` into a vector without clones.
         ///
         /// The resulting vector can be converted back into a box via
@@ -735,24 +676,11 @@ pub unsafe trait Array<const N: usize>: Sized {
 }
 
 unsafe impl<T, const N: usize> Array<N> for [T; N] {
-    type Item = T;
-    type Maybe = [MaybeUninit<T>; N];
-
     crate::if_alloc! {
         #[inline]
         fn into_boxed_slice(self) -> alloc::boxed::Box<[Self::Item]> {
             alloc::boxed::Box::new(self) as _
         }
-    }
-
-    #[inline]
-    fn as_slice(&self) -> &[T] {
-        &self[..]
-    }
-
-    #[inline]
-    fn as_mut_slice(&mut self) -> &mut [T] {
-        &mut self[..]
     }
 
     #[inline]

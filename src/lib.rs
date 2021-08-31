@@ -127,10 +127,8 @@ pub(crate) mod util {
 
 pub use self::{
     array::Array,
-    ext::{
-        shorthand::ArrayShorthand,
-        slice_ext::{MaybeUninitSlice, Slice},
-    },
+    continuous::Continuous,
+    ext::slice_ext::{MaybeUninitSlice, Slice},
 };
 
 /// Iterator related things
@@ -144,11 +142,10 @@ pub mod iter {
 
 // === private but reexported ===
 mod array;
+mod continuous;
 
 /// Different extension traits
 mod ext {
-    /// Also array ext (but for `.as_slice().method()` -> `.method()` shortcuts)
-    pub(super) mod shorthand;
     /// Slice ext
     pub(super) mod slice_ext;
 }

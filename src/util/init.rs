@@ -14,7 +14,7 @@ use core::{
     ptr,
 };
 
-use crate::{Array, ArrayShorthand, MaybeUninitSlice};
+use crate::{Array, MaybeUninitSlice};
 
 #[inline]
 pub(crate) fn try_unfold_array<T, St, F, E, const N: usize>(init: St, mut f: F) -> Result<[T; N], E>
