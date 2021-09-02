@@ -1,5 +1,7 @@
 use core::{mem::MaybeUninit, slice};
 
+use crate::{iter::ArrayWindows, Array, SizeError};
+
 /// Shorthand methods those just refer to `self.as_slice().smt()`
 pub unsafe trait Continuous: AsRef<[Self::Item]> + AsMut<[Self::Item]> {
     /// Type of the Items in the array or slice. i.e.
@@ -119,23 +121,118 @@ pub unsafe trait Continuous: AsRef<[Self::Item]> + AsMut<[Self::Item]> {
         }
     }
 
-    /// ## Safety
-    #[inline]
-    unsafe fn assume_init_ref(this: &Self::Uninit) -> &Self
+    /// Returns an iterator over all contiguous windows of type `A` (length
+    /// `A::SIZE`). The windows overlap. If the slice is shorter than size
+    /// (`A::SIZE`), the iterator returns `None`.
+    ///
+    /// ## Panics
+    ///
+    /// Panics if `A::SIZE` is 0 (`A = [T; 0]`).
+    ///
+    /// ## Examples
+    ///
+    /// ```
+    /// use arraylib::Continuous;
+    ///
+    /// let mut iter = [1, 2, 3, 4].array_windows_();
+    /// assert_eq!(iter.next(), Some(&[1, 2]));
+    /// assert_eq!(iter.next(), Some(&[2, 3]));
+    /// assert_eq!(iter.next(), Some(&[3, 4]));
+    /// assert_eq!(iter.next(), None);
+    /// ```
+    ///
+    /// In difference with [`<[T]>::windows`][windows], this method returns
+    /// iterator that returns _arrays_, so you can use array destruction:
+    ///
+    /// [windows]: https://doc.rust-lang.org/std/primitive.slice.html#method.windows
+    ///
+    /// ```
+    /// use arraylib::Continuous;
+    ///
+    /// assert_eq!(
+    ///     [1, 2, 3, 4, 5]
+    ///         .array_windows_()
+    ///         .map(|[a, b, c]| a + b + c)
+    ///         .sum::<u32>(),
+    ///     27
+    /// )
+    /// ```
+    ///
+    /// If the slice is shorter than size:
+    ///
+    /// ```
+    /// use arraylib::Continuous;
+    ///
+    /// let slice = ['f', 'o', 'o'];
+    /// let mut iter = slice.array_windows_::<4>();
+    /// assert!(iter.next().is_none());
+    /// ```
+    fn array_windows_<const N: usize>(&self) -> ArrayWindows<Self::Item, N> {
+        ArrayWindows::new(self.as_ref())
+    }
+
+    /// Copy `self` into an owned array.
+    /// Return `Err(SizeError)` if len of `self` is not equal to `A::SIZE`.
+    ///
+    /// ## Examples
+    ///
+    /// ```
+    /// use arraylib::Continuous;
+    ///
+    /// let slice: &[i32] = &[0, 1, 2, 3, 4];
+    /// let array: [i32; 5] = slice.copied().unwrap();
+    /// assert_eq!(array, [0, 1, 2, 3, 4]);
+    /// ```
+    ///
+    /// ```
+    /// use arraylib::{Continuous, SizeError};
+    ///
+    /// let slice: &[i32] = &[0, 1, 2, 3, 4];
+    /// let result = slice.copied::<2>();
+    /// assert_eq!(result, Err(SizeError::default()));
+    /// ```
+    fn copied<const N: usize>(&self) -> Result<[Self::Item; N], SizeError>
     where
-        Self: Sized,
+        Self::Item: Copy,
     {
-        &*(this as *const _ as *const _)
+        Array::from_slice(self.as_ref())
+    }
+
+    /// Clone `self` into an owned array.
+    /// Return `Err(SizeError)` if len of `self` is not equal to `A::SIZE`.
+    ///
+    /// ## Examples
+    ///
+    /// ```
+    /// use arraylib::Continuous;
+    /// use core::ops::Range;
+    ///
+    /// // Range is not `Copy`
+    /// let slice: &[Range<usize>] = &[0..1, 1..3, 2..10];
+    /// let array: [Range<usize>; 3] = slice.cloned().unwrap();
+    /// assert_eq!(array, [0..1, 1..3, 2..10]);
+    /// ```
+    ///
+    /// ```
+    /// use arraylib::{Continuous, SizeError};
+    /// use core::ops::Range;
+    ///
+    /// let slice: &[Range<usize>] = &[0..1, 1..3, 2..10];
+    /// let result = slice.cloned::<5>();
+    /// assert_eq!(result, Err(SizeError::default()));
+    /// ```
+    fn cloned<const N: usize>(&self) -> Result<[Self::Item; N], SizeError>
+    where
+        Self::Item: Clone,
+    {
+        Array::clone_from_slice(self.as_ref())
     }
 
     /// ## Safety
-    #[inline]
-    unsafe fn assume_init_mut(this: &mut Self::Uninit) -> &mut Self
-    where
-        Self: Sized,
-    {
-        &mut *(this as *mut _ as *mut _)
-    }
+    unsafe fn assume_init_ref(this: &Self::Uninit) -> &Self;
+
+    /// ## Safety
+    unsafe fn assume_init_mut(this: &mut Self::Uninit) -> &mut Self;
 }
 
 unsafe impl<T> Continuous for [T] {
@@ -155,6 +252,14 @@ unsafe impl<T> Continuous for [T] {
     #[inline]
     fn len(&self) -> usize {
         self.len()
+    }
+
+    unsafe fn assume_init_ref(this: &Self::Uninit) -> &Self {
+        &*(this as *const _ as *const _)
+    }
+
+    unsafe fn assume_init_mut(this: &mut Self::Uninit) -> &mut Self {
+        &mut *(this as *mut _ as *mut _)
     }
 }
 
@@ -180,5 +285,13 @@ unsafe impl<T, const N: usize> Continuous for [T; N] {
     #[inline]
     fn is_empty(&self) -> bool {
         N == 0
+    }
+
+    unsafe fn assume_init_ref(this: &Self::Uninit) -> &Self {
+        &*(this as *const _ as *const _)
+    }
+
+    unsafe fn assume_init_mut(this: &mut Self::Uninit) -> &mut Self {
+        &mut *(this as *mut _ as *mut _)
     }
 }

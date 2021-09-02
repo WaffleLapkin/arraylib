@@ -125,11 +125,7 @@ pub(crate) mod util {
     pub(crate) mod transmute;
 }
 
-pub use self::{
-    array::Array,
-    continuous::Continuous,
-    ext::slice_ext::{MaybeUninitSlice, Slice},
-};
+pub use self::{array::Array, continuous::Continuous};
 
 /// Iterator related things
 pub mod iter {
@@ -140,15 +136,9 @@ pub mod iter {
     mod windows;
 }
 
-// === private but reexported ===
+// private but reexported
 mod array;
 mod continuous;
-
-/// Different extension traits
-mod ext {
-    /// Slice ext
-    pub(super) mod slice_ext;
-}
 
 /// Run tests from readme
 #[cfg_attr(feature = "nightly", doc = include_str!("../README.md"))]

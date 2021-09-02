@@ -14,7 +14,7 @@ use core::{
     ptr,
 };
 
-use crate::{Array, MaybeUninitSlice};
+use crate::{Array, Continuous};
 
 #[inline]
 pub(crate) fn try_unfold_array<T, St, F, E, const N: usize>(init: St, mut f: F) -> Result<[T; N], E>
@@ -57,10 +57,8 @@ where
                 //
                 // The contract of the struct guarantees that this is sound
                 unsafe {
-                    let inited: &mut [T] = self
-                        .arr
-                        .get_unchecked_mut(..self.initialized)
-                        .assume_init_mut();
+                    let inited: &mut [T] =
+                        <[_]>::assume_init_mut(self.arr.get_unchecked_mut(..self.initialized));
 
                     // drop initialized elements
                     ptr::drop_in_place(inited);

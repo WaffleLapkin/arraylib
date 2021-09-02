@@ -123,7 +123,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::Slice;
+    use crate::Continuous;
 
     #[test]
     fn basic_usage() {
