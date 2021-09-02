@@ -167,6 +167,7 @@ pub unsafe trait Continuous: AsRef<[Self::Item]> + AsMut<[Self::Item]> {
     /// let mut iter = slice.array_windows_::<4>();
     /// assert!(iter.next().is_none());
     /// ```
+    #[inline]
     fn array_windows_<const N: usize>(&self) -> ArrayWindows<Self::Item, N> {
         ArrayWindows::new(self.as_ref())
     }
@@ -196,6 +197,7 @@ pub unsafe trait Continuous: AsRef<[Self::Item]> + AsMut<[Self::Item]> {
     /// assert_eq!(expected, 2);
     /// assert_eq!(found, 5);
     /// ```
+    #[inline]
     fn copied<const N: usize>(&self) -> Result<[Self::Item; N], SizeError>
     where
         Self::Item: Copy,
@@ -231,6 +233,7 @@ pub unsafe trait Continuous: AsRef<[Self::Item]> + AsMut<[Self::Item]> {
     /// assert_eq!(expected, 5);
     /// assert_eq!(found, 3);
     /// ```
+    #[inline]
     fn cloned<const N: usize>(&self) -> Result<[Self::Item; N], SizeError>
     where
         Self::Item: Clone,
@@ -264,10 +267,12 @@ unsafe impl<T> Continuous for [T] {
         self.len()
     }
 
+    #[inline]
     unsafe fn assume_init_ref(this: &Self::Uninit) -> &Self {
         &*(this as *const _ as *const _)
     }
 
+    #[inline]
     unsafe fn assume_init_mut(this: &mut Self::Uninit) -> &mut Self {
         &mut *(this as *mut _ as *mut _)
     }
@@ -297,10 +302,12 @@ unsafe impl<T, const N: usize> Continuous for [T; N] {
         N == 0
     }
 
+    #[inline]
     unsafe fn assume_init_ref(this: &Self::Uninit) -> &Self {
         &*(this as *const _ as *const _)
     }
 
+    #[inline]
     unsafe fn assume_init_mut(this: &mut Self::Uninit) -> &mut Self {
         &mut *(this as *mut _ as *mut _)
     }
