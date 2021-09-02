@@ -146,13 +146,23 @@ mod continuous;
 pub struct ReadmeDocTests;
 
 /// Error that is caused by wrong sizes of slices/arrays
-#[derive(Debug, PartialEq, Eq, Copy, Clone, Default)]
-pub struct SizeError(());
+#[derive(Debug, PartialEq, Eq, Copy, Clone)]
+#[non_exhaustive]
+pub struct SizeError {
+    /// Actuall size
+    pub found: usize,
+    /// Expected size
+    pub expected: usize,
+}
 
 impl core::fmt::Display for SizeError {
     #[inline]
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> Result<(), core::fmt::Error> {
-        f.write_str("wrong size")
+        write!(
+            f,
+            "wrong size, expected {}, found {}",
+            self.expected, self.found
+        )
     }
 }
 

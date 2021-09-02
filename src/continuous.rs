@@ -189,7 +189,12 @@ pub unsafe trait Continuous: AsRef<[Self::Item]> + AsMut<[Self::Item]> {
     ///
     /// let slice: &[i32] = &[0, 1, 2, 3, 4];
     /// let result = slice.copied::<2>();
-    /// assert_eq!(result, Err(SizeError::default()));
+    ///
+    /// let SizeError {
+    ///     expected, found, ..
+    /// } = result.unwrap_err();
+    /// assert_eq!(expected, 2);
+    /// assert_eq!(found, 5);
     /// ```
     fn copied<const N: usize>(&self) -> Result<[Self::Item; N], SizeError>
     where
@@ -219,7 +224,12 @@ pub unsafe trait Continuous: AsRef<[Self::Item]> + AsMut<[Self::Item]> {
     ///
     /// let slice: &[Range<usize>] = &[0..1, 1..3, 2..10];
     /// let result = slice.cloned::<5>();
-    /// assert_eq!(result, Err(SizeError::default()));
+    ///
+    /// let SizeError {
+    ///     expected, found, ..
+    /// } = result.unwrap_err();
+    /// assert_eq!(expected, 5);
+    /// assert_eq!(found, 3);
     /// ```
     fn cloned<const N: usize>(&self) -> Result<[Self::Item; N], SizeError>
     where

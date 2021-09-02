@@ -426,8 +426,12 @@ where
     /// # use arraylib::{Array, SizeError};
     /// let slice = &[1, 2, 3, 4];
     /// let arr = <[i32; 2]>::from_slice(slice);
-    /// //          ^^^^^^ ---- wrong size, slice len = 4, arr len = 2
-    /// assert_eq!(arr, Err(SizeError::default()));
+    ///
+    /// let SizeError {
+    ///     expected, found, ..
+    /// } = arr.unwrap_err();
+    /// assert_eq!(expected, 2);
+    /// assert_eq!(found, 4);
     /// ```
     #[inline]
     fn from_slice(slice: &[Self::Item]) -> Result<Self, SizeError>
@@ -437,7 +441,10 @@ where
         if slice.len() == N {
             Ok(Self::from_iter(slice.iter().copied()).unwrap())
         } else {
-            Err(SizeError::default())
+            Err(SizeError {
+                expected: N,
+                found: slice.len(),
+            })
         }
     }
 
@@ -466,7 +473,10 @@ where
         if slice.len() == N {
             Ok(Self::from_iter(slice.iter().cloned()).unwrap())
         } else {
-            Err(SizeError::default())
+            Err(SizeError {
+                expected: N,
+                found: slice.len(),
+            })
         }
     }
 
