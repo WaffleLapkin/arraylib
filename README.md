@@ -1,7 +1,7 @@
 # arraylib
 [![CI status](https://github.com/WaffleLapkin/arraylib/workflows/Continuous%20integration/badge.svg)](https://github.com/WaffleLapkin/arraylib/actions)
 [![Telegram](https://img.shields.io/badge/tg-WaffleLapkin-9cf?logo=telegram)](https://vee.gg/t/WaffleLapkin)
-[![crates.io](http://meritbadge.herokuapp.com/arraylib)](https://crates.io/crates/arraylib)
+[![crates.io](https://img.shields.io/crates/v/arraylib.svg)](https://crates.io/crates/arraylib)
 [![documentation (docs.rs)](https://docs.rs/arraylib/badge.svg)](https://docs.rs/arraylib)
 [![documentation (master)](https://img.shields.io/badge/docs-master-blue)](https://arraylib.netlify.com/arraylib)
 [![LICENSE](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
