@@ -9,7 +9,7 @@ use crate::Array;
 /// This struct is created by the [`array_windows`] method on [slices].
 /// See it's documentation for more.
 ///
-/// [`array_windows`]: crate::Slice::array_windows_
+/// [`array_windows`]: crate::Continuous::array_windows_
 /// [slices]: https://doc.rust-lang.org/std/primitive.slice.html
 pub struct ArrayWindows<'a, T, const N: usize> {
     slice: &'a [T],

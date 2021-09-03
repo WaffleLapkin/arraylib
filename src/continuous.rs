@@ -6,9 +6,9 @@ use crate::{iter::ArrayWindows, Array, SizeError};
 /// or a [`slice`].
 ///
 /// [`len`]: Continuous::len
-/// [`Item`]: Continuous::item
+/// [`Item`]: Continuous::Item
 /// [`array`]: array
-/// [`slice`]: slice
+/// [`slice`]: prim@slice
 ///
 /// This trait mostly consists of shorthand methods those just refer to
 /// `self.as_slice().smt()`.
@@ -23,6 +23,10 @@ use crate::{iter::ArrayWindows, Array, SizeError};
 /// (ignoring the reference type).
 ///
 /// [`Self::Uninit`]: Continuous::Uninit
+/// [`as_slice`]: Continuous::as_slice
+/// [`as_mut_slice`]: Continuous::as_mut_slice
+/// [`as_ref`]: AsRef::as_ref
+/// [`as_mut`]: AsMut::as_mut
 pub unsafe trait Continuous: AsRef<[Self::Item]> + AsMut<[Self::Item]> {
     /// Type of the Items in the array or slice. i.e.
     /// ```
@@ -201,7 +205,8 @@ pub unsafe trait Continuous: AsRef<[Self::Item]> + AsMut<[Self::Item]> {
     }
 
     /// Copy `self` into an owned array.
-    /// Return `Err(SizeError)` if len of `self` is not equal to `A::SIZE`.
+    ///
+    /// Returns `Err(SizeError { .. })` if lenght of `self` is not equal to `N`.
     ///
     /// ## Examples
     ///
@@ -234,7 +239,8 @@ pub unsafe trait Continuous: AsRef<[Self::Item]> + AsMut<[Self::Item]> {
     }
 
     /// Clone `self` into an owned array.
-    /// Return `Err(SizeError)` if len of `self` is not equal to `A::SIZE`.
+    ///
+    /// Return `Err(SizeError { .. })` if lenght of `self` is not equal to `N`.
     ///
     /// ## Examples
     ///
