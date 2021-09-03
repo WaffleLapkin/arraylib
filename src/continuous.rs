@@ -2,7 +2,27 @@ use core::{mem::MaybeUninit, slice};
 
 use crate::{iter::ArrayWindows, Array, SizeError};
 
-/// Shorthand methods those just refer to `self.as_slice().smt()`
+/// Continuous data structure consisting of [`len`] [`Item`]s. ie an [`array`]
+/// or a [`slice`].
+///
+/// [`len`]: Continuous::len
+/// [`Item`]: Continuous::item
+/// [`array`]: array
+/// [`slice`]: slice
+///
+/// This trait mostly consists of shorthand methods those just refer to
+/// `self.as_slice().smt()`.
+///
+/// ## Safety
+///
+/// Implementors of this trait must be layout compatible with an array (slice)
+/// and [`Self::Uninit`]. All functions must be pure (ie not have side effects,
+/// return the same value for the same output). [`len`] must be identical to
+/// `.as_slice().len()` or `.as_mut_slice().len()`. [`as_slice`],
+/// [`as_mut_slice`], [`as_ref`] and [`as_mut`] must return the same values
+/// (ignoring the reference type).
+///
+/// [`Self::Uninit`]: Continuous::Uninit
 pub unsafe trait Continuous: AsRef<[Self::Item]> + AsMut<[Self::Item]> {
     /// Type of the Items in the array or slice. i.e.
     /// ```
@@ -121,13 +141,17 @@ pub unsafe trait Continuous: AsRef<[Self::Item]> + AsMut<[Self::Item]> {
         }
     }
 
-    /// Returns an iterator over all contiguous windows of type `A` (length
-    /// `A::SIZE`). The windows overlap. If the slice is shorter than size
-    /// (`A::SIZE`), the iterator returns `None`.
+    /// Returns an iterator over all continuous windows of type `&[Item; N]`.
+    /// The windows overlap. If the slice is shorter than size
+    /// `N`, the iterator returns `None`.
     ///
-    /// ## Panics
+    /// ## Note
     ///
-    /// Panics if `A::SIZE` is 0 (`A = [T; 0]`).
+    /// This function is identical to the
+    /// [`<[T]>::array_windows`][array_windows] (unstable as of writing this).
+    /// The name is changed to fix collision warning.
+    ///
+    /// [array_windows]: https://doc.rust-lang.org/std/primitive.slice.html#method.array_windows
     ///
     /// ## Examples
     ///
@@ -167,6 +191,10 @@ pub unsafe trait Continuous: AsRef<[Self::Item]> + AsMut<[Self::Item]> {
     /// let mut iter = slice.array_windows_::<4>();
     /// assert!(iter.next().is_none());
     /// ```
+    ///
+    /// ## Panics
+    ///
+    /// Panics if `N` is 0.
     #[inline]
     fn array_windows_<const N: usize>(&self) -> ArrayWindows<Self::Item, N> {
         ArrayWindows::new(self.as_ref())
