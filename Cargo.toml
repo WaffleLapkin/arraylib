@@ -31,9 +31,6 @@ alloc = []
 # - `exact_size_is_empty` (for implementing `<{Chunks,IterMove} as ExactSizeIterator>::is_empty` more effective)
 nightly = []
 
-array-impls-33-128 = []
-array-impls-129-256 = []
-
 [[example]]
 name = "array_stack"
 required-features = ["nightly"]
