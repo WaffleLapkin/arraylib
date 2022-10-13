@@ -2,21 +2,17 @@
 //!   1) Abstraction over arrays (you can use [`Array`] trait as bound on
 //!      generics)
 //!   2) Creation of arrays (see [`Array`] trait)
-//!   3) Doing operations on arrays that produce arrays (see
-//!      [`ArrayMap`] and [`ArrayAsRef`] traits)
-//!   4) By-value iterating on array (see [`IterMove`])
-//!   5) `Iterator` adapter that yield fixed sized chunks of inner iterator
+//!   3) Doing operations on arrays that produce arrays
+//!   4) `Iterator` adapter that yield fixed sized chunks of inner iterator
 //!      (see [`ArrayChunks`])
 //!
 //! [`Array`]: crate::Array
-//! [`ArrayExt`]: crate::ArrayExt
-//! [`IterMove`]: crate::iter::IterMove
 //! [`ArrayChunks`]: crate::iter::ArrayChunks
 //!
 //! ## Example
 //!
 //! ```
-//! use arraylib::{Array, ArrayExt, ArrayMap};
+//! use arraylib::Array;
 //!
 //! // Array creation
 //! let arr = <[_; 11]>::unfold(1, |it| {
@@ -26,7 +22,7 @@
 //! });
 //!
 //! // Mapping
-//! let arr = arr.map(|it| it * 2);
+//! let arr = arr.lift(|it| it * 2);
 //! assert_eq!(arr, [2, -4, 8, -16, 32, -64, 128, -256, 512, -1024, 2048]);
 //!
 //! // By-value iterator
@@ -79,7 +75,7 @@
 //!   and [`Array::from_iter`])
 //! - [`array_ext`](https://docs.rs/array_ext)
 //! - [`slice_as_array`](https://peterreid.github.io/slice_as_array/slice_as_array/index.html)
-//!   (analogs to [`ArrayExt::from_slice`] and [`Array::from_iter`])
+//!   (analogs to [`Array::from_slice`] and [`Array::from_iter`])
 //! - [`arraytools`](https://docs.rs/arraytools)
 //! - [`core::array::FixedSizeArray`](https://doc.rust-lang.org/beta/core/array/trait.FixedSizeArray.html)
 //! - [`stackvec`](https://docs.rs/stackvec/)
@@ -104,8 +100,6 @@
 #![cfg_attr(not(test), no_std)]
 // Some sweaty nightly features
 #![cfg_attr(feature = "nightly", feature(trusted_len, exact_size_is_empty))]
-// For running tests from readme
-#![cfg_attr(all(doctest, feature = "nightly"), feature(external_doc))]
 // I hate missing docs
 #![deny(missing_docs)]
 // And I like inline
@@ -116,7 +110,7 @@
 // ```console
 // $ RUSTDOCFLAGS="--cfg docsrs" cargo doc --open --features "alloc nightly"
 // ```
-#![cfg_attr(docsrs, feature(doc_cfg))]
+#![cfg_attr(all(docsrs, feature = "nightly"), feature(doc_cfg))]
 
 #[cfg(feature = "alloc")]
 extern crate alloc;
@@ -124,10 +118,6 @@ extern crate alloc;
 /// Utils that help implementing public API
 #[macro_use]
 pub(crate) mod util {
-    #[macro_use]
-    /// Helper macros these are used in this lib
-    mod local_macros;
-
     /// Array initialization
     pub(crate) mod init;
 
@@ -135,66 +125,44 @@ pub(crate) mod util {
     pub(crate) mod transmute;
 }
 
-pub use self::{
-    array::Array,
-    ext::{
-        array_ext::ArrayExt,
-        shorthand::ArrayShorthand,
-        slice_ext::{MaybeUninitSlice, Slice},
-    },
-    transform::{as_ref::ArrayAsRef, map::ArrayMap},
-    wrap::ArrayWrapper,
-};
+pub use self::{array::Array, continuous::Continuous};
 
 /// Iterator related things
 pub mod iter {
-    pub use self::{
-        chunks::ArrayChunks, ext::IteratorExt, iter_move::IterMove, windows::ArrayWindows,
-    };
+    pub use self::{chunks::ArrayChunks, ext::IteratorExt, windows::ArrayWindows};
 
     mod chunks;
     mod ext;
-    mod iter_move;
     mod windows;
 }
 
-// === private but reexported ===
+// private but reexported
 mod array;
-mod wrap;
-
-/// Array transformers like map (`[T; N]` -> `[U; N]`)
-///
-/// Commonly just shortcuts for `.iter_move().*method*(...).collect_array()`
-mod transform {
-    /// `&(mut) [T; N]` -> `[&(mut) T; N]`
-    pub(super) mod as_ref;
-    /// `[T; N]` -> `[U; N]`
-    pub(super) mod map;
-}
-
-/// Different extension traits
-mod ext {
-    /// Array ext
-    pub(super) mod array_ext;
-    /// Also array ext (but for `.as_slice().method()` -> `.method()` shortcuts)
-    pub(super) mod shorthand;
-    /// Slice ext
-    pub(super) mod slice_ext;
-}
+mod continuous;
 
 /// Run tests from readme
-#[cfg_attr(feature = "nightly", doc(include = "../README.md"))]
+#[cfg_attr(feature = "nightly", doc = include_str!("../README.md"))]
 #[cfg(doctest)]
 pub struct ReadmeDocTests;
 
 /// Error that is caused by wrong sizes of slices/arrays
-#[derive(Debug, PartialEq, Eq, Copy, Clone, Default)]
-pub struct SizeError(());
+#[derive(Debug, PartialEq, Eq, Copy, Clone)]
+#[non_exhaustive]
+pub struct SizeError {
+    /// Actuall size
+    pub found: usize,
+    /// Expected size
+    pub expected: usize,
+}
 
 impl core::fmt::Display for SizeError {
     #[inline]
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> Result<(), core::fmt::Error> {
-        f.write_str("wrong size")
+        write!(
+            f,
+            "wrong size, expected {}, found {}",
+            self.expected, self.found
+        )
     }
 }
 

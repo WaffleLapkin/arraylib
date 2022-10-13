@@ -18,7 +18,7 @@ _Compiler support: requires rustc 1.41+_
 ## Examples
 
 ```rust
-use arraylib::{Array, ArrayMap, ArrayExt};
+use arraylib::Array;
 // Array creation
 let arr = <[_; 11]>::unfold(1, |it| {
     let res = *it;
@@ -27,7 +27,7 @@ let arr = <[_; 11]>::unfold(1, |it| {
 });
 
 // Mapping
-let arr = arr.map(|it| it * 2);
+let arr = arr.lift(|it| it * 2);
 assert_eq!(arr, [2, -4, 8, -16, 32, -64, 128, -256, 512, -1024, 2048]);
 
 // By-value iterator
